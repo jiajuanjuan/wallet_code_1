@@ -1,3 +1,4 @@
+
 import getpass
 import json
 import os
@@ -21,9 +22,11 @@ failure reason for Generate_Two_Key function
 10001: two passwords do not match
 """
 
-from xml.dom import minidom
-from Mainform import pathConfig
 
+from ApplicationHelper import pathConfig
+
+from xml.dom import minidom
+import MyXml
 
 def generateaddressXml():
     doc = minidom.Document()
@@ -34,7 +37,7 @@ def generateaddressXml():
     doc.appendChild(rootElement)
 
     f = open(pathConfig.lastSettingPath + 'test.xml', 'w')
-    doc.writexml(f, addindent='  ', newl='\n')
+    doc.writexml(f, addindent='    ', newl='\n', encoding="utf-8")
     f.close()
 
     return (doc,rootElement)
@@ -84,15 +87,13 @@ def editaddressxml(doc,rootElement,accountname,row):
 
 def generatewalletXml():
     doc = minidom.Document()
-
     rootElement = doc.createElement('ArrayOfWalletBaseEntity')
     rootElement.setAttribute('xmlns:xsd', '"https://www.w3.org/2001/XMLSchema"')
     doc.appendChild(rootElement)
-    f = open(pathConfig.lastSettingPath + 'wa.xml', 'w')
-    os.path.realpath(__file__)
-    doc.writexml(f, addindent='  ', newl='\n')
+    f = open(pathConfig.lastSettingPath + 'Wallets.xml', 'w')
+    #os.path.realpath(__file__)
+    doc.writexml(f, addindent='    ', newl='\n',encoding="utf-8")
     f.close()
-
     return (doc, rootElement)
 
 def addwalletxml(doc,rootElement,accountname,address,filename,GMN='false'):
@@ -126,8 +127,7 @@ def addwalletxml(doc,rootElement,accountname,address,filename,GMN='false'):
     xmlStr = xmlStr.decode().replace('\t', '').replace('\n', '')
     doc = minidom.parseString(xmlStr)
 
-    print('add wallet to xml')
-    f = open(pathConfig.lastSettingPath +'wa.xml', 'w')
+    f = open(pathConfig.lastSettingPath +'Wallets.xml', 'w')
     doc.writexml(f, addindent=' ', newl='\n')
     f.close()
 
@@ -140,7 +140,7 @@ def editwalletxml(doc,rootElement,accountname,row):
     xmlStr = xmlStr.decode().replace('\t', '').replace('\n', '')
     doc = minidom.parseString(xmlStr)
 
-    f = open(pathConfig.lastSettingPath +'wa.xml', 'w')
+    f = open(pathConfig.lastSettingPath +'Wallets.xml', 'w')
     doc.writexml(f, addindent=' ', newl='\n')
     f.close()
 
@@ -200,7 +200,7 @@ def Import_Keystore(passphrase, filecontent):
         encrypted = Account.encrypt(private_key, passphrase)
         return (1, [public_key, private_key], json.dumps(encrypted))
     except Exception as err:
-        print(err)
+        print("Import_Keystore Error :" + str(err))
         return (0, 10000)
 
 
@@ -240,12 +240,19 @@ def Transaction_out(private_key, toaddr, value, gas, gasprice, nonce):
     }
     print(transaction)
     #key = '0x4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318'
-    signed = w3.eth.account.signTransaction(transaction, private_key)
-    print(w3.toHex(signed.rawTransaction))
-    tx_hash = requests.get(
-        "https://waltonchain.net:18950/api/sendRawTransaction/" + w3.toHex(signed.rawTransaction)).json()
-    print(tx_hash)
+    try:
+        signed = w3.eth.account.signTransaction(transaction, private_key)
+        print("sendData :" + w3.toHex(signed.rawTransaction))
+    except Exception as err:
+        print("signTransaction Error : " + str(err))
+    try:
+        #print("sendDataType :" + type(w3.toHex(signed.rawTransaction)))
+        tx_hash = requests.get("https://waltonchain.net:18950/api/sendRawTransaction/" + w3.toHex(signed.rawTransaction)).json()
 
+    except Exception as err:
+        print("sendRawTransaction Error : " + str(err))
+        return (0,0)
+    print("tx_hash : " + tx_hash['tx_hash'])
     return (1, tx_hash['tx_hash'])
 
 
@@ -261,10 +268,10 @@ def getAccountBalance(public_key):
     try:
         r1 = requests.get(
             "https://waltonchain.net:18950/api/getBalance/"+public_key).json()
-        return (1, r1['Balance'])
+        return (True, r1['Balance'])
     except Exception as err:
         print(err)
-        return (0, err)
+        return (False, err)
 
 
 def getMiningRecord(public_key):
@@ -277,14 +284,7 @@ def getMiningRecord(public_key):
         return (0, err)
 
 
-def getTransactionRecord(public_key):
-    try:
-        r1 = requests.get(
-            "https://waltonchain.net:18950/api/getAccountTransactionsAllPagination/"+public_key+"/1/100").json()
-        return (1, r1['tx_pagination_details'])
-    except Exception as err:
-        print(err)
-        return (0, err)
+
 
 def getTransactionInfo(hash):
     try:
@@ -308,8 +308,14 @@ def getTokenMarket():
 
 
 def getTransactionRecord_day(public_key, interval):
-    r1 = requests.get("https://waltonchain.net:18950/api/getHistoryBalance/"+public_key+'/'+interval).json()
-    return (1, r1['HistoryBalance'])
+    try:
+        r1 = requests.get("https://waltonchain.net:18950/api/getHistoryBalance/"+public_key+'/'+interval).json()
+        return (True, r1['HistoryBalance'])
+    except Exception as err:
+        #print("Error ：" + str(err))
+        return (False, err)
+
+
     
 
 
@@ -327,10 +333,10 @@ def getLatestBlock():
     try:
         r1 = requests.get(
             "https://waltonchain.net:18950/api/getLatestBlock").json()
-        return (1, r1['latest_block'])
+        return (True, r1['latest_block'])
     except Exception as err:
-        print(err)
-        return (0, err)
+        print("getLatestBlock Error:"+ str(err))
+        return (False, err)
 
 def getDifficulty():
     try:
@@ -522,40 +528,36 @@ def edittransxml(doc,rootElement,address,blocktype,row):
 
             break
 
-def generatesettingXml():
+def generateSettingXml():
     doc = minidom.Document()
-
     rootElement = doc.createElement('MiningEntity')
     rootElement.setAttribute('xmlns:xsd', '"https://www.w3.org/2001/XMLSchema"')
     doc.appendChild(rootElement)
-
     password = doc.createElement('MinerP')
     rootElement.appendChild(password)
     addr = doc.createTextNode(' ')
     password.appendChild(addr)
-
     wallet = doc.createElement('wallet')
     rootElement.appendChild(wallet)
     wa = doc.createTextNode(' ')
     wallet.appendChild(wa)
-
     minewallet = doc.createElement('minewallet')
     rootElement.appendChild(minewallet)
     minewa = doc.createTextNode(' ')
     minewallet.appendChild(minewa)
-
     minediff = doc.createElement('Difficulty')
     rootElement.appendChild(minediff)
-    diff = doc.createTextNode('478705014976')
-    minediff.appendChild(diff)
+    #diff = doc.createTextNode('478705014976')
+    diff = doc.createTextNode('Getting')
 
+    minediff.appendChild(diff)
     minereward = doc.createElement('Mining_reward')
     rootElement.appendChild(minereward)
-    reward = doc.createTextNode('3')
+    #reward = doc.createTextNode('3')
+    reward = doc.createTextNode('Getting')
     minereward.appendChild(reward)
-
     f = open(pathConfig.lastSettingPath + 'setting.xml', 'w')
-    doc.writexml(f, addindent='  ', newl='\n')
+    doc.writexml(f, addindent='    ', newl='\n', encoding="utf-8")
     f.close()
 
     return (doc, rootElement)
@@ -573,6 +575,58 @@ def get_new_USD():
     except Exception as err:
         print(err)
         return (0, err)
+
+
+#获取余额
+def getAccountBalance(address):
+    try:
+        r1 = requests.get(
+            "https://waltonchain.net:18950/api/getBalance/" + address).json()
+        return (True, r1['Balance'])
+    except Exception as err:
+        print("Error: " + str(err))
+        return (False, err)
+#获取Nonce
+def getAccountNonce(address):
+    try:
+        r1 = requests.get(
+            "https://waltonchain.net:18950/api/getSendTransactionNonce/" + address).json()["send_nonce"]
+        return (True, r1)
+    except Exception as err:
+        print("Error: " + str(err))
+        return (False, err)
+
+#获取该地址的100条交易记录
+def getTransactionRecord(address):
+    try:
+        r1 = requests.get(
+            "https://waltonchain.net:18950/api/getAccountTransactionsAllPagination/" + address + "/1/100").content.decode()
+        #return (True, r1['tx_pagination_details'])
+        return  (True,r1)
+    except Exception as err:
+        print("Error: " + str(err))
+        return (False, err)
+
+#获取该地址的20天的余额，20代表20天的数据
+def getHistoryBalance(address):
+    print("address : " + address)
+    try:
+        r1 = requests.get("https://waltonchain.net:18950/api/getHistoryBalance/"+address+'/'+"20").content.decode()
+        print("request result: ")
+        print(r1)
+        #return (True, r1['HistoryBalance'])
+        return (True ,r1)
+    except Exception as err:
+        print("getHistoryBalance Error: ")
+        print(err)
+        print("getHistoryBalance Error end : ")
+        return (False, err)
+
+
+
+
+
+
 
 
 

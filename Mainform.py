@@ -24,7 +24,7 @@ import requests
 import sip
 from datetime import datetime, timedelta
 import time
-import datetime
+
 import xml.dom.minidom
 from eth_account import Account
 from PyQt5 import QtWidgets
@@ -58,13 +58,20 @@ import matplotlib
 # import matplotlib.pyplot as plt
 import datetime
 import hashlib
+from ApplicationHelper import pathConfig
 import pic_rc
+
 
 matplotlib.use("Qt5Agg")
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-
+#判断当前是什么平台的模块
+import platform
+import MyXml
+from ApplicationHelper import  ApplicationHelper
+from TransactionListHelper import  TransactionList, AccountTransactionsListEntity,AccountTransactionsEntity,AddressTransactionsEntity
+from AddressLastBalanceEntity import HistoryBalanceHelper ,AddressBalanceEntity,BalanceEntity
 
 class deleteform(QDialog, Ui_DeleteForm):
     def __init__(self,PRAE):
@@ -100,7 +107,7 @@ class deleteform(QDialog, Ui_DeleteForm):
             addrentity = ex.walletroot.getElementsByTagName('WalletBaseEntity')[
                 self.row]
             addrentity.parentNode.removeChild(addrentity)
-            f = open(pathConfig.lastSettingPath + 'wa.xml', 'w')
+            f = open(pathConfig.lastSettingPath + 'Wallets.xml', 'w')
             ex.walletdom.writexml(f, addindent=' ', newl='\n')
             f.close()
 
@@ -548,6 +555,7 @@ class enterpswform(QDialog, Ui_EnterPswForm):
             self.passwordeye = 1
 
     def getprikey(self, addr, password):
+        print("getprikey" )
         print(addr, password)
         filename = pathConfig.keystoresPath +addr[2:18] + ".keystore"
         if os.path.isfile(filename):
@@ -637,10 +645,8 @@ class enterpswform(QDialog, Ui_EnterPswForm):
         self.close()
 
 class Figure_Canvas(FigureCanvas):
-
     def __init__(self, parent=None, width=5, height=2, dpi=100):
         fig = Figure(figsize=(width, height), dpi=70)
-
         FigureCanvas.__init__(self, fig)
         self.setParent(parent)
         self.x=[]
@@ -1083,7 +1089,7 @@ class mingwaform(QDialog, Ui_AccountForm):
         self.close()
 
     def show_w2(self, PRAE):
-        if os.path.isfile(pathConfig.lastSettingPath +'wa.xml'):
+        if os.path.isfile(pathConfig.lastSettingPath +'Wallets.xml'):
             if len(ex.walletroot.getElementsByTagName('WalletBaseEntity')) != 0:
                 self.ui.Account.setRowCount(0)
                 for AddressEntity in ex.walletroot.getElementsByTagName('WalletBaseEntity'):
@@ -1624,9 +1630,9 @@ class sendform(QDialog, Ui_SendForm):
 
     def showenterphrase(self):
         try:
-            if ex.peers == 0:
-                self.publishform.show_w2("peers connected is 0!", self)
-                return
+            #if ex.peers == 0:
+            #    self.publishform.show_w2("peers connected is 0!", self)
+             #   return
             ex.Trans.value = self.ui.lineEdit_6.text().strip()
             ex.Trans.Type = 'Send'
             ex.Trans.Gas = self.ui.lineEdit_8.text().strip()
@@ -1667,6 +1673,7 @@ class sendform(QDialog, Ui_SendForm):
             print('enter')
             self.enterpswform.show_w2(ex.ui.lineEdit_8.text(), self, 1)
         except Exception as err:
+            print("showenterphrase Error : " + str(err))
             pass
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -1691,6 +1698,212 @@ class Example(QDialog, QWidget):
         super().__init__()
         self.initUI()
         self.init()
+
+        # 起线程请求当前最新的块号
+    #获取最新的块号
+    def getLastBlock(self):
+        if self.lastBlockGetting == False:
+            self.lastBlockGetting = True
+            from updata import getLastBlockThread
+            self.getLastBlockThread = getLastBlockThread()
+            self.getLastBlockThread.getLastBlockfinishSignal.connect(self.resetLastBlockThreadFlag)
+            self.getLastBlockThread.start()
+
+    def resetLastBlockThreadFlag(self,result):
+        if result[0] == True:
+            ApplicationHelper.lastBlock = result[1]
+        self.lastBlockGetting = False
+
+    ############################MyWallet 页的处理###################################################
+    #每次显示MyWallet那一个table页的时候都初始化一下页面的信息 包括（余额，交易记录，交易记录上面的刷新时间，地址，密钥）
+    def initMyWallet(self):
+        print("kkkkkkkkkkk"+self.m_wallet.address)
+        if self.m_wallet.address == '':
+            return
+        #根据当前的钱包保存在配置文件中的数据先刷新界面
+        self.refreshMWLocalData()
+        #启动线程联网刷新市场数据
+        self.getMWMarket()
+
+        #GetIsGMN(m_address) #c#有这个函数，目前没有加进来
+        #启动一个线程去联网刷新余额，交易记录，nonce 等信息
+        self.getMWTransactionListData()
+        #启动一个线程联网刷新20天的交易信息
+        self.getMWHistoryBalance()
+
+        #启动GetIsGMN的定时器 #现在python版本的还没有 C#版本的有
+        #启动 刷新交易信息的定时器
+
+        #启动刷新20天的余额历史的定时器
+
+    #根据保存的配置文件里面的记录进行刷新
+    def refreshMWLocalData(self):
+        #刷新交易信息
+        self.showTransactions()
+        #刷新余额变化趋势
+        self.showBalance()
+
+    def showBalance(self):
+        hbHelper = HistoryBalanceHelper()
+        addressEntity = hbHelper.find(self.m_wallet.address)
+        # 获取到多少天的余额记录
+        iCount = len(addressEntity.HistoryBalanceList)
+
+        graphicscene = QtWidgets.QGraphicsScene()
+        dr = Figure_Canvas()
+        graphicscene.addWidget(dr)
+        # 有两个页面都要显示余额的数据，同时处理
+        ##我的钱包页面中的余额
+        self.ui.graphicsView.setScene(graphicscene)
+        # 数据统计里面的余额
+        self.ui.graphicsView_5.setScene(graphicscene)
+        # 代表当前文件中没有该账号的20天余额记录
+        if addressEntity.address == "" or iCount < 1:
+            # 我的钱包页面中的余额
+            self.ui.lineEdit_36.setText('')
+            self.ui.lineEdit_37.setText('')
+            self.ui.label_32.setPixmap(QPixmap(":/pic/GPoint.png"))
+            self.ui.lineEdit_35.setText('Current: ' + '  WTCT')
+            # 数据统计里面的余额
+            self.ui.lineEdit_41.setText('')
+            self.ui.lineEdit_42.setText('')
+            # 绘制折线图的对象
+            dr.y = [0]
+            dr.x = [0]
+            dr.axes.plot(dr.x, dr.y, 'r-', 1)
+            dr.axes.set_axis_off()
+            self.ui.graphicsView.show()
+            self.ui.graphicsView_5.show()
+            return
+
+        dr.y = []
+        dr.x = [20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+
+
+        endEntity = addressEntity.HistoryBalanceList[0]
+        startEntity = addressEntity.HistoryBalanceList[iCount-1]
+
+        try:
+            #跟新y轴的值
+            for i in range(iCount):
+                bEntity = addressEntity.HistoryBalanceList[i]
+                dr.y.append(float(bEntity.history_balance))
+            #绘制曲线
+            dr.axes.plot(dr.x, dr.y, 'r-', 1)
+            dr.axes.set_axis_off()
+            self.ui.graphicsView.show()
+            self.ui.graphicsView_5.show()
+            #更新一些其他控件的内容
+
+            strTimeStart = startEntity.utc_timestamp.split(" ")[0]
+            strTimeEnd = endEntity.utc_timestamp.split(" ")[0]
+         
+            #我的钱包页面中的余额
+            self.ui.lineEdit_36.setText(strTimeStart)
+            self.ui.lineEdit_37.setText(strTimeEnd)
+            self.ui.lineEdit_35.setText('Current: ' + str( int(endEntity.history_balance) / (10 ** 9)) + ' WTCT')
+            if ( endEntity.history_balance / (10 ** 9)) < 5000:
+                self.ui.label_32.setPixmap(QPixmap(":/pic/GPoint.png"))
+            else:
+                self.ui.label_32.setPixmap(QPixmap(":/pic/PPonit.png"))
+
+            self.ui.lineEdit_41.setText(strTimeStart)
+            self.ui.lineEdit_42.setText(strTimeEnd)
+        except Exception as err:
+            #出错就先不更新
+            print("Error : " + str(err))
+
+    def showTransactions(self):
+        #在配置文件中找到该钱包对象，找不到直接返回，否则进行数据额刷新
+        tHelper = TransactionList()
+        addressEntity = tHelper.find(self.m_wallet.address)
+        if addressEntity.Address == "":
+            self.ui.TransactionHistory.clear()
+            self.ui.TransactionHistory.setRowCount(0)
+            return
+        #刷新交易记录上方 updata的时间
+        self.ui.lineEdit_31.setText(addressEntity.UpdateTime)
+        #跟新每一笔交易
+        #根据当前钱包的交易记录数给tablewidget设置合适的行数
+        iCount = len(addressEntity.AccountTransactionsEntityList)
+        #清空并设置新的行数
+        self.ui.TransactionHistory.clear()
+        self.ui.TransactionHistory.setRowCount(iCount)
+
+        for i in range(iCount):
+            accountTransEntity = addressEntity.AccountTransactionsEntityList[i]
+            #设备每条记录是转出还是转入的图标
+            item = QTableWidgetItem()
+            #记录是转出还是转入 "-" 还是"+"
+            transValue = ""
+            #记录与之发生交易的账户，转出是addressTo 转入是addressFrom
+            relatedAddress = ""
+            if accountTransEntity.transType == ApplicationHelper.transSend:
+                dela = QtGui.QIcon(":/pic/send3.png")
+                item.setIcon(dela)
+                transValue = '-' + str( accountTransEntity.value) + 'WTCT'
+                relatedAddress = accountTransEntity.addressTo
+            else:
+                dela = QtGui.QIcon(":/pic/recieve3.png")
+                item.setIcon(dela)
+                transValue = '+' + str(accountTransEntity.value) + 'WTCT'
+                relatedAddress = accountTransEntity.addressFrom
+            #考虑应该要上锁，这个属于成员变量，如果仅刷新数据和线程请求完刷新数据同时操作可能有问题
+            # 赋值给tableWidget的item
+            self.ui.TransactionHistory.setItem(i, 0, item)
+            self.ui.TransactionHistory.setItem(i, 1, QTableWidgetItem(accountTransEntity.utc_timestamp))
+            self.ui.TransactionHistory.setItem(i, 2, QTableWidgetItem(relatedAddress))
+            self.ui.TransactionHistory.setItem(i, 3, QTableWidgetItem(accountTransEntity.blockType))
+            self.ui.TransactionHistory.setItem(i, 4, QTableWidgetItem(transValue))
+            #更新我的钱包页面 刷新按钮的状态
+        self.resetTraHisrefreshBtn()
+
+
+    def getMWMarket(self):
+        #调用联网获取市场数据的方法，成功则进行刷新，否则不刷新
+        pass
+
+    # 联网刷新交易信息
+    def getMWTransactionListData(self):
+        #如果当前最新块号没有获取到则再次获取最新块号，只有有了最新块号才能请求到交易是否成功
+        if ApplicationHelper.lastBlock == 0 :
+            #进行最新块号的获取，并返回
+            return
+        #如果当前没有正在获取交易信息，则开启线程进行数据获取
+        if self.transactionListGetting == False:
+            self.transactionListGetting = True
+            from updata import getTransactionDataThread
+            self.getTransactionDataThread = getTransactionDataThread(self.m_wallet.address)
+            self.getTransactionDataThread.getTransfinishSignal.connect(self.resetTransactionThreadFlag)
+            self.getTransactionDataThread.start()
+
+
+    def resetTransactionThreadFlag(self, result,nonce):
+        self.transactionListGetting = False
+        if result == True:
+            self.m_wallet.nonce = nonce
+            self.showTransactions()
+
+
+    #20天的余额变化情况
+    def getMWHistoryBalance(self):
+        if self.historyBalanceGetting == False:
+            self.historyBalanceGetting = True
+            from updata import getHistoryBalanceThread
+            self.getHistoryBalanceThread = getHistoryBalanceThread(self.m_wallet.address)
+            self.getHistoryBalanceThread.getBalancefinishSignal.connect(self.resetHistoryBalanceThreadFlag)
+            self.getHistoryBalanceThread.start()
+
+
+    def resetHistoryBalanceThreadFlag(self, result):
+        self.historyBalanceGetting = False
+        if result == True:
+            self.showBalance()
+
+    ########################################################################################
+
+
+
 
     def choosebtn(self, QTableWidgetItem):
         row = Core_func.QTableWidget.indexFromItem(
@@ -1760,51 +1973,39 @@ class Example(QDialog, QWidget):
 
         return (mwOpen, mwEdit, mwDelete, mwSaveKey, consend, conedit)
 
+    def openWalletByAddress(self,address):
+        self.setToolBoxVisible(True)
+        self.ui.lineEdit_8.setText(address)
+        self.pressbtn1()
+        self.initMyWallet()
+
+        '''
+        try:
+            self.m_wallet.nonce = requests.get(
+                "https://waltonchain.net:18950/api/getSendTransactionNonce/" + address).json()[
+                "send_nonce"]
+        except Exception as err:
+            print("Error: " + str(err))
+        finally:
+            self.initchart()
+            self.ui.lineEdit_9.setEchoMode(QLineEdit.Password)
+            self.ui.pushButton_35.setIcon(QIcon(":/pic/08.png"))
+            self.pressbtn1()
+            self.refreshTop()
+            self.privatekeyeye = 1
+            self.ui.LogMessage.setRowCount(0)
+            self.ui.TransactionHistory.setRowCount(0)
+            self.refresh()
+        '''
+
+
     def openwallet(self, row,new):
         if new == 0:
             ind = Core_func.QTableWidget.indexFromItem(
                 self.ui.multWallet, self.ui.multWallet.item(row, 1))
-            self.ui.lineEdit_8.setText(ind.data())
             self.m_wallet.address = ind.data()
+        self.openWalletByAddress(self.m_wallet.address)
 
-        else:
-            self.ui.lineEdit_8.setText(self.m_wallet.address)
-        try:
-            self.m_wallet.nonce = requests.get(
-            "https://waltonchain.net:18950/api/getSendTransactionNonce/"+self.m_wallet.address).json()["send_nonce"]
-        except Exception as err:
-            print(err)
-            self.ui.lineEdit_9.setEchoMode(QLineEdit.Password)
-            self.ui.pushButton_35.setIcon(QIcon(":/pic/08.png"))
-            self.pressbtn1()
-            # self.publishform.show_w2('please check your network', self)
-            self.refreshTop()
-            
-            self.privatekeyeye = 1
-            
-            self.ui.LogMessage.setRowCount(0)
-            self.ui.TransactionHistory.setRowCount(0)
-            self.ui.mywallet.setVisible(1)
-            self.ui.statistic.setVisible(1)
-            self.ui.message.setVisible(1)
-            self.ui.contact.setVisible(1)
-            self.initchart()
-            self.refresh()
-            # self.refreshlog()
-        print('nonce = '+str(self.m_wallet.nonce))
-        self.ui.lineEdit_9.setEchoMode(QLineEdit.Password)
-        self.ui.pushButton_35.setIcon(QIcon(":/pic/08.png"))
-        self.privatekeyeye = 1
-        self.pressbtn1()
-        self.ui.LogMessage.setRowCount(0)
-        self.ui.TransactionHistory.setRowCount(0)
-        self.ui.mywallet.setVisible(1)
-        self.ui.statistic.setVisible(1)
-        self.ui.message.setVisible(1)
-        self.ui.contact.setVisible(1)
-        self.initchart()
-        self.refresh()
-        # self.refreshlog()
 
     def editwallet(self, row):
         self.walletInfoform = walletInfoform(self)
@@ -1832,7 +2033,7 @@ class Example(QDialog, QWidget):
         self.ui.stackedWidget.setCurrentIndex(1)
         self.ui.tabWidget.setCurrentIndex(0)
         self.ui.NewWalletstacked.setCurrentIndex(0)
-        '''
+
         self.ui.lineEdit_23.setEchoMode(QLineEdit.Password)
         self.ui.pushButton_40.setIcon(QIcon(":/pic/08.png"))
         self.prieye = 1
@@ -1847,7 +2048,7 @@ class Example(QDialog, QWidget):
                     '******************************************************************')
         else:
             self.ui.lineEdit_9.setText(self.m_wallet.privateKey)
-        '''
+
 
     def pressbtn2(self):
         self.setToolBoxNoHeighlight()
@@ -1962,6 +2163,7 @@ class Example(QDialog, QWidget):
                     self.imgpri = qrcode.make(ret[1][1])
                     self.imgpri.save(pathConfig.keystoresPath + "private.png")
                     self.ui.NewWalletstacked.setCurrentIndex(1)
+                    self.setToolBoxNoHeighlight()
                 else:
                     self.publishform.show_w2('error', self)
         except Exception as err:
@@ -2100,8 +2302,8 @@ class Example(QDialog, QWidget):
                     enterpri = self.ui.lineEdit_20.text()
                     enterpri.strip()
                     if len(self.ui.lineEdit_6.text().strip()) >= 6:
-                        ret = Core_func.Import_Keystore(
-                            self.ui.lineEdit_6.text().strip(), content)
+                        ret = Core_func.Import_Keystore(self.ui.lineEdit_6.text().strip(), content)
+                        #登录成功
                         if ret[0] == 1:
                             if len(self.walletroot.getElementsByTagName('WalletBaseEntity'))>0:
                                 for i in range(len(self.walletroot.getElementsByTagName('WalletBaseEntity'))):
@@ -2190,15 +2392,20 @@ class Example(QDialog, QWidget):
             # self.ui.label_11.setPixmap(QPixmap(":/pic/disvispri.png"))
             self.ui.pushButton_21.setIcon(QIcon(":/pic/disvispri.png"))
 
+    def isExistWalletInMultiWallets(self):
+        for i in range(self.ui.multWallet.rowCount()):
+            itemData = Core_func.QTableWidget.indexFromItem(self.ui.multWallet, self.ui.multWallet.item(i, 1))
+            if self.m_wallet.address == itemData.data():
+                return True
+        return False
+
+
+    #向multi wallet 里面添加钱包，并将新增的数据写入配置文件
     def addWallet(self):
-        ################
-        # waiting to add checking same wallet already existed
-        ################
-        print('first wallet1')
-        if self.ui.multWallet.rowCount() == 0:
-            print('first wallet2')
+        #先判断该钱包在multiwallet页面是否已经存在，若不存在则添加，否则不操作
+        if self.isExistWalletInMultiWallets() == False:
             Rcount = self.ui.multWallet.rowCount()
-            self.ui.multWallet.setRowCount(Rcount+1)
+            self.ui.multWallet.setRowCount(Rcount + 1)
             newItemAddr = QTableWidgetItem(self.m_wallet.address)
             newItemName = QTableWidgetItem(self.m_wallet.accountname)
             self.ui.multWallet.setItem(Rcount, 1, newItemAddr)
@@ -2218,16 +2425,18 @@ class Example(QDialog, QWidget):
             newItemsave.setForeground(QBrush(QColor(135, 0, 255)))
             newItemsave.setFlags(QtCore.Qt.ItemIsEnabled)
 
-
-
             self.ui.multWallet.setItem(Rcount, 2, newItemopen)
             self.ui.multWallet.setItem(Rcount, 3, newItemedit)
             self.ui.multWallet.setItem(Rcount, 4, newItemdel)
             self.ui.multWallet.setItem(Rcount, 5, newItemsave)
-            print('add wallet to xml  1111')
+            #界面钱包添加好了之后再将信息保存到配置文件中
+            #获取key文件的路径
             DataKeystore = pathConfig.keystoresPath + self.m_wallet.address[2:18] + ".keystore"
-            Core_func.addwalletxml(self.walletdom, self.walletroot,
-                                   self.m_wallet.accountname, self.m_wallet.address, DataKeystore)
+            #添加到保存钱包信息的文件中去
+            Core_func.addwalletxml(
+                self.walletdom, self.walletroot, self.m_wallet.accountname, self.m_wallet.address, DataKeystore)
+
+            #将该钱包的交易信息保存到trans.xml文件中
             if len(self.transroot.getElementsByTagName('AddressTransactionsEntity')) == 0:
                 Core_func.addtransaddrxml(self.transdom, self.transroot, self.m_wallet.address,
                                           time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
@@ -2236,78 +2445,18 @@ class Example(QDialog, QWidget):
                     AddressTransactionsEntity = self.transroot.getElementsByTagName(
                         'AddressTransactionsEntity')[i]
                     if self.m_wallet.address == AddressTransactionsEntity.getElementsByTagName('Address')[
-                            0].firstChild.data:
+                        0].firstChild.data:
                         break
                     if i == len(self.transroot.getElementsByTagName('AddressTransactionsEntity')) - 1:
                         Core_func.addtransaddrxml(self.transdom, self.transroot, self.m_wallet.address,
                                                   time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
-
-            print('first wallet3')
-
-            self.openwallet(0,1)
-            print('first wallet4')
-            # return 0
-
-        else:
-            for i in range(self.ui.multWallet.rowCount()):
-                ind = Core_func.QTableWidget.indexFromItem(
-                    self.ui.multWallet, self.ui.multWallet.item(i, 1))
-                if self.m_wallet.address == ind.data():
-                    break
-                if i == self.ui.multWallet.rowCount()-1:
-                    Rcount = self.ui.multWallet.rowCount()
-                    self.ui.multWallet.setRowCount(Rcount+1)
-                    newItemAddr = QTableWidgetItem(self.m_wallet.address)
-                    newItemName = QTableWidgetItem(self.m_wallet.accountname)
-                    self.ui.multWallet.setItem(Rcount, 1, newItemAddr)
-                    self.ui.multWallet.setItem(Rcount, 0, newItemName)
-                    newItemdel = QTableWidgetItem('   Delete   ')
-                    newItemdel.setForeground(QBrush(QColor(135, 0, 255)))
-                    newItemdel.setFlags(QtCore.Qt.ItemIsEnabled)
-                    newItemopen = QTableWidgetItem('    Open    ')
-                    newItemopen.setForeground(QBrush(QColor(135, 0, 255)))
-                    newItemopen.setFlags(QtCore.Qt.ItemIsEnabled)
-
-                    newItemedit = QTableWidgetItem('    Edit    ')
-                    newItemedit.setForeground(QBrush(QColor(135, 0, 255)))
-                    newItemedit.setFlags(QtCore.Qt.ItemIsEnabled)
-
-                    newItemsave = QTableWidgetItem('  Save key  ')
-                    newItemsave.setForeground(QBrush(QColor(135, 0, 255)))
-                    newItemsave.setFlags(QtCore.Qt.ItemIsEnabled)
+            #导入钱包成功之后打开新导入的钱包
+            self.openwallet(Rcount, 1)
 
 
 
-                    self.ui.multWallet.setItem(Rcount, 2, newItemopen)
-                    self.ui.multWallet.setItem(Rcount, 3, newItemedit)
-                    self.ui.multWallet.setItem(Rcount, 4, newItemdel)
-                    self.ui.multWallet.setItem(Rcount, 5, newItemsave)
-                    print('add wallet to xml  1111')
-                    DataKeystore = pathConfig.keystoresPath + self.m_wallet.address[2:18] + ".keystore"
-                    Core_func.addwalletxml(
-                        self.walletdom, self.walletroot, self.m_wallet.accountname, self.m_wallet.address, DataKeystore)
 
-                    if len(self.transroot.getElementsByTagName('AddressTransactionsEntity')) == 0:
-                        Core_func.addtransaddrxml(self.transdom, self.transroot, self.m_wallet.address,
-                                                  time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
-                    else:
-                        for i in range(len(self.transroot.getElementsByTagName('AddressTransactionsEntity'))):
-                            AddressTransactionsEntity = self.transroot.getElementsByTagName(
-                                'AddressTransactionsEntity')[i]
-                            if self.m_wallet.address == AddressTransactionsEntity.getElementsByTagName('Address')[
-                                    0].firstChild.data:
-                                break
-                            if i == len(self.transroot.getElementsByTagName('AddressTransactionsEntity')) - 1:
-                                Core_func.addtransaddrxml(self.transdom, self.transroot, self.m_wallet.address,
-                                                          time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
-                    # self.ui.mywallet.setVisible(1)
-                    # self.ui.statistic.setVisible(1)
-                    self.openwallet(0,1)
-                    # self.ui.message.setVisible(1)
-                    # self.ui.contact.setVisible(1)
-                    # self.initchart()
-                    # self.refresh()
-                    # self.refreshlog()
+
 
     def delWallet(self, row):
         self.deleteform = deleteform(self)
@@ -2674,6 +2823,7 @@ class Example(QDialog, QWidget):
         print('tick')
 
     def refresh(self):
+        return
         try:
             if os.path.isfile(pathConfig.lastSettingPath +'test.xml'):
                 print('refresh1')
@@ -2860,7 +3010,6 @@ class Example(QDialog, QWidget):
                                                 Transrow, 3, newItemblockType)
                                             self.ui.TransactionHistory.setItem(
                                                 Transrow, 4, newItemvalue)
-                        
                     if self.ui.TransactionHistory.rowCount()==0:
                         ret = Core_func.getTransactionRecord(
                                     self.m_wallet.address)
@@ -2923,6 +3072,7 @@ class Example(QDialog, QWidget):
             # self.syncstatus = 0
             # self.peers = 0
             self.refreshTop()
+
     def refreshlog(self):
         try:
             print(self.ui.LogMessage.rowCount())
@@ -3021,8 +3171,8 @@ class Example(QDialog, QWidget):
                 if str(self.w3.eth.syncing) == 'False':
                     self.syncstatus = 1
                 try:
-                    r1 = requests.get("https://waltonchain.net:18950/api/getGasPrice").json()
-                    print('jj peers= '+str(self.peers))
+                    #r1 = requests.get("https://waltonchain.net:18950/api/getGasPrice").json()
+                    #print('jj peers= '+str(self.peers))
                     if self.waite_net == 1:
                         self.initMarket()
                         self.initmap()
@@ -3055,7 +3205,7 @@ class Example(QDialog, QWidget):
                 self.waite_miningtatus = 1
             self.UpdateTopGUI()
             subprocess.Popen('walton.exe', shell=True)
-            print('j1 once walton')
+            #print('j1 once walton')
     
     def initMarket(self):
         try:
@@ -3130,43 +3280,6 @@ class Example(QDialog, QWidget):
             # self.syncstatus = 0
             # self.peers = 0
             self.refreshTop()
-
-    def UpdateBalanceGUI(self,ret,dr):
-        if ret[0] == '1':
-            ret1 = ret[1]
-            try:
-                graphicscene = QtWidgets.QGraphicsScene()
-                graphicscene.addWidget(dr)
-                self.ui.graphicsView.setScene(graphicscene)
-                self.ui.graphicsView.show()
-                self.ui.lineEdit_35.setText('Current: ' + str((int(ret1)) / (10 ** 9)) + ' WTCT')
-                nowtime = datetime.datetime.now()
-                detaday = datetime.timedelta(days=20)
-                da_days = nowtime - detaday
-                if self.m_wallet.address == '':
-                    self.ui.lineEdit_36.setText('')
-                    self.ui.lineEdit_37.setText('')
-                else:
-                    self.ui.lineEdit_36.setText(da_days.strftime('%Y-%m-%d'))
-                    self.ui.lineEdit_37.setText(nowtime.strftime('%Y-%m-%d'))
-                self.ui.graphicsView_5.setScene(graphicscene)
-                self.ui.graphicsView_5.show()
-                if self.m_wallet.address == '':
-                    self.ui.lineEdit_41.setText('')
-                    self.ui.lineEdit_42.setText('')
-                else:
-                    self.ui.lineEdit_41.setText(da_days.strftime('%Y-%m-%d'))
-                    self.ui.lineEdit_42.setText(nowtime.strftime('%Y-%m-%d'))
-
-                if self.m_wallet.address != '':
-                    if (int(ret1)) / (10 ** 9) < 5000:
-                        self.ui.label_32.setPixmap(QPixmap(":/pic/GPoint.png"))
-                    else:
-                        self.ui.label_32.setPixmap(QPixmap(":/pic/PPonit.png"))
-            except Exception as err:
-                self.ui.label_32.setPixmap(QPixmap(":/pic/GPoint.png"))
-                self.ui.lineEdit_35.setText('Current: ' + '  WTCT')
-        self.IsnitchartThreadstarted = False
 
     def UpdateTopGUI(self):
         if self.syncstatus == 0:
@@ -3359,8 +3472,9 @@ class Example(QDialog, QWidget):
             from updata import initchartThread
             dr = Figure_Canvas()
             self.initchartThread = initchartThread(dr,self.m_wallet.address)
-            self.initchartThread.finishSignal.connect(self.UpdateBalanceGUI)
+            #self.initchartThread.finishSignal.connect(self.UpdateBalanceGUI)
             self.initchartThread.start()
+        self.getMWTransactionListData()
 
     def initmining(self):
         try:
@@ -3428,8 +3542,8 @@ class Example(QDialog, QWidget):
     def initwallets(self):
         try:
             print('go to find   ./wa.xml')
-            if os.path.isfile(pathConfig.lastSettingPath + 'wa.xml'):  # address
-                url = pathConfig.lastSettingPath + 'wa.xml'
+            if os.path.isfile(pathConfig.lastSettingPath + 'Wallets.xml'):  # address
+                url = pathConfig.lastSettingPath + 'Wallets.xml'
                 print('find   ./wa.xml')
                 if len(self.walletroot.getElementsByTagName('WalletBaseEntity')) - self.ui.multWallet.rowCount() > 0:
                     self.ui.multWallet.setRowCount(0)
@@ -3592,26 +3706,21 @@ class Example(QDialog, QWidget):
         self.ui.graphicsView_7.show()
 
     def closeEvent(self, event):
+        address = ' '
         if self.m_wallet.address != '':
-            self.settingroot.getElementsByTagName('wallet')[0].firstChild.data = self.m_wallet.address
-            f = open(pathConfig.lastSettingPath +  'setting.xml', 'w')
-            self.settingdom.writexml(f, addindent=' ', newl='\n')
-            f.close()
-        else:
-            self.settingroot.getElementsByTagName('wallet')[0].firstChild.data = ' '
-            f = open(pathConfig.lastSettingPath +  'setting.xml', 'w')
-            self.settingdom.writexml(f, addindent=' ', newl='\n')
-            f.close()
+            address = self.m_wallet.address
+        mineAddress = ' '
         if len(self.ui.lineEdit_7.text().strip())== 42 and self.ui.lineEdit_7.text().strip()[0:2]=='0x':
-            self.settingroot.getElementsByTagName('minewallet')[0].firstChild.data = self.ui.lineEdit_7.text().strip()
-            f = open(pathConfig.lastSettingPath + 'setting.xml', 'w')
-            self.settingdom.writexml(f, addindent=' ', newl='\n')
-            f.close()
-        else:
-            self.settingroot.getElementsByTagName('minewallet')[0].firstChild.data = ' '
-            f = open(pathConfig.lastSettingPath + 'setting.xml', 'w')
-            self.settingdom.writexml(f, addindent=' ', newl='\n')
-            f.close()
+            mineAddress = self.ui.lineEdit_7.text().strip()
+
+        self.settingroot.getElementsByTagName('wallet')[0].firstChild.data = address
+        self.settingroot.getElementsByTagName('minewallet')[0].firstChild.data = mineAddress
+
+        f = open(pathConfig.lastSettingPath + 'setting.xml', 'w')
+        self.settingdom.writexml(f, indent = '\n',addindent='    ', newl='',encoding='utf-8')
+
+        f.close()
+
         self.kill_by_name('walton')
         #delete private.png
         if (os.path.exists(pathConfig.keystoresPath + "private.png")):
@@ -3679,8 +3788,47 @@ class Example(QDialog, QWidget):
             result2 = subprocess.Popen('walton.exe', shell=True)
         return  True
 
+    def btntraHisrefreshClick(self):
+        #开启钱包页面刷新按钮的定时器
+        self.traHisrefreshTimer.start(10000)  #
+        # 将我的钱包页面刷新按钮设置为不可用
+        self.ui.pushButton_46.setIcon(QIcon(":/pic/grayqukuai.png"))
+        self.ui.pushButton_46.setEnabled(False)
+
+        self.getMWHistoryBalance()
+        self.getMWTransactionListData()
+
+    def resetTraHisrefreshBtn(self):
+        self.ui.pushButton_46.setEnabled(True)
+        self.ui.pushButton_46.setIcon(QIcon(":/pic/puperqukuai.png"))
+
+    def createMWConnection(self):
+        # btntraHisrefresh 按钮按下如果长时间没请求到数据，隔一段时间自动恢复按钮可用，请求到数据则直接设置可用
+        self.traHisrefreshTimer = QTimer(self)  #
+        self.traHisrefreshTimer.timeout.connect(self.resetTraHisrefreshBtn)
+        #这是一个一次性的定时器，每开启一次指挥执行一次
+        self.traHisrefreshTimer.setSingleShot(True)
+        # My Wallet 页面刷新的按钮
+        btntraHisrefresh = self.ui.pushButton_46
+        btntraHisrefresh.clicked.connect(self.btntraHisrefreshClick)
+
 
     def createConnection(self):
+
+        self.LastBlockTimer = QTimer(self)  #
+        self.LastBlockTimer.timeout.connect(self.getLastBlock)  #
+        self.LastBlockTimer.start(30000)  #
+
+
+        self.timertop = QTimer(self)  #
+        self.timertop.timeout.connect(self.refreshTop)  #
+        self.timertop.start(30000)  #
+
+        '''
+        self.timerchart = QTimer(self)  #
+        self.timerchart.timeout.connect(self.initchart)  #
+        self.timerchart.start(1000)  #
+
         self.timertran = QTimer(self)  #
         self.timertran.timeout.connect(self.refresh)  #
         self.timertran.start(153000)  #
@@ -3689,9 +3837,7 @@ class Example(QDialog, QWidget):
         self.timertop.timeout.connect(self.refreshTop)  #
         self.timertop.start(30000)  #
 
-        self.timerchart = QTimer(self)  #
-        self.timerchart.timeout.connect(self.initchart)  #
-        self.timerchart.start(1000)  #
+
 
         self.timermining = QTimer(self)  #
         self.timermining.timeout.connect(self.initmining)  #
@@ -3709,11 +3855,10 @@ class Example(QDialog, QWidget):
         self.timermap = QTimer(self)  #
         self.timermap.timeout.connect(self.initMingres)  #
         self.timermap.start(900000)  # 15min
-
+        '''
         btnminHisrefresh = self.ui.pushButton_45
         btnminHisrefresh.clicked.connect(self.initmining)
-        btntraHisrefresh = self.ui.pushButton_46
-        btntraHisrefresh.clicked.connect(self.refresh)
+
         # Page of Create Wallet
         btncnw = self.ui.creat_new_wallet
         btncnw.clicked.connect(self.pressCreatNewWallet)
@@ -3758,7 +3903,6 @@ class Example(QDialog, QWidget):
         btntosee5 = self.ui.turn2visible2_5
         btntosee5.clicked.connect(self.seephrs2)
 
-
         # enter mnem
         btntosee6 = self.ui.turn2visible1_7
         btntosee6.clicked.connect(self.seemnem1)
@@ -3769,16 +3913,12 @@ class Example(QDialog, QWidget):
         btntosee8 = self.ui.turn2visible2_4
         btntosee8.clicked.connect(self.seephrm2)
 
-
         # enter keystore
         btntosee9 = self.ui.turn2visible1_2
         btntosee9.clicked.connect(self.seepassK)
 
-
         btnloginkeys = self.ui.login_keys
         btnloginkeys.clicked.connect(lambda: self.importKetstore())
-
-
 
         # all pages shift
         btn1 = self.ui.mywallet
@@ -3801,7 +3941,7 @@ class Example(QDialog, QWidget):
 
         btneye1.clicked.connect(self.seepassword)
         btnsavekey = self.ui.SaveKey
-        btnsavekey.clicked.connect(lambda: self.savekey(0,1))
+        btnsavekey.clicked.connect(lambda: self.savekey(0, 1))
         btnsavename = self.ui.SaveName
         btnsavename.clicked.connect(self.savename)
 
@@ -3888,8 +4028,6 @@ class Example(QDialog, QWidget):
         btntmes.clicked.connect(self.totme)
         btnstas = self.ui.pushButton_15
         btnstas.clicked.connect(self.tostack)
-
-
 
     def setToolBoxVisible(self,bVisible):
         self.ui.mywallet.setVisible(bVisible)
@@ -4047,12 +4185,16 @@ class Example(QDialog, QWidget):
         self.publishform = publishform(self)
         self.changepswform = changepswform(self)
         self.sendform = sendform(self)
+        self.pswform = pswform(self)
 
         # 主程序对象初始化
         self.m_wallet = Wallet
         self.Trans = Transaction
         # 标志刷新balance的线程是否开启了
         self.IsnitchartThreadstarted = False
+        self.transactionListGetting  = False
+        self.historyBalanceGetting = False
+        self.lastBlockGetting = False
         self.waite_miningtatus = 0
         self.lastblacknum = 0
         self.cpures = 2
@@ -4073,6 +4215,8 @@ class Example(QDialog, QWidget):
         self.privatekeyeye = 1
         self.startstop = 1
         self.cpumode = 1
+
+        self.getLastBlock()
 
         # 开启walton服务器
         if self.startWalton() == False:
@@ -4103,6 +4247,7 @@ class Example(QDialog, QWidget):
 
         self.show()
         self.createConnection()
+        self.createMWConnection()
 
 
 
@@ -4111,10 +4256,10 @@ class Example(QDialog, QWidget):
         if not os.path.isfile(pathConfig.lastSettingPath + 'test.xml'):
             ret = Core_func.generateaddressXml()
         self.praseTestFile()
-        if not os.path.isfile(pathConfig.lastSettingPath + 'wa.xml'):
+        if not os.path.isfile(pathConfig.lastSettingPath + 'Wallets.xml'):
             ret = Core_func.generatewalletXml()
-        self.praseWaFile()
-        '''
+        self.praseWalletsFile()
+
         if os.path.isfile(pathConfig.lastSettingPath +'test.xml'):
             self.transdom = xml.dom.minidom.parse(pathConfig.lastSettingPath +"test.xml")
             xmlStr = self.transdom.toprettyxml(indent='', newl='', encoding='utf-8')
@@ -4138,9 +4283,12 @@ class Example(QDialog, QWidget):
             xmlStr = self.transdom.toprettyxml(indent='', newl='', encoding='utf-8')
             xmlStr = xmlStr.decode().replace('\t', '').replace('\n', '')
             self.transdom = xml.dom.minidom.parseString(xmlStr)
+
+        if not os.path.isfile(pathConfig.lastSettingPath + 'setting.xml'):
+            Core_func.generateSettingXml()
+        self.praseSettingFile()
+
         '''
-        if os.path.isfile(pathConfig.lastSettingPath + 'setting.xml'):
-            '''
             self.settingdom = xml.dom.minidom.parse(pathConfig.lastSettingPath +  "setting.xml")  #
             xmlStr = self.settingdom.toprettyxml(indent='', newl='', encoding='utf-8')
             xmlStr = xmlStr.decode().replace('\t', '').replace('\n', '')
@@ -4183,16 +4331,7 @@ class Example(QDialog, QWidget):
                 self.ui.contact.setVisible(1)
         else:
         '''
-            Core_func.generatesettingXml()
-            self.settingdom = xml.dom.minidom.parse(pathConfig.lastSettingPath + "setting.xml")  #
-            xmlStr = self.settingdom.toprettyxml(indent='', newl='', encoding='utf-8')
-            xmlStr = xmlStr.decode().replace('\t', '').replace('\n', '')
-            self.settingdom = xml.dom.minidom.parseString(xmlStr)
-            xmlStr = self.settingdom.toprettyxml(indent='', newl='', encoding='utf-8')
-            xmlStr = xmlStr.decode().replace('\t', '').replace('\n', '')
-            self.settingdom = xml.dom.minidom.parseString(xmlStr)
-            self.settingroot = self.settingdom.documentElement  #
-            self.pswform = pswform(self)
+
             #self.show()
 
     def praseTestFile(self):
@@ -4208,8 +4347,8 @@ class Example(QDialog, QWidget):
         # 根节点
         self.addrroot = self.addrdom.documentElement
 
-    def praseWaFile(self):
-        self.walletdom = xml.dom.minidom.parse(pathConfig.lastSettingPath + "wa.xml")
+    def praseWalletsFile(self):
+        self.walletdom = xml.dom.minidom.parse(pathConfig.lastSettingPath + 'Wallets.xml')
         xmlStr = self.walletdom.toprettyxml(indent='', newl='', encoding='utf-8')
         xmlStr = xmlStr.decode().replace('\t', '').replace('\n', '')
         self.walletdom = xml.dom.minidom.parseString(xmlStr)
@@ -4217,6 +4356,49 @@ class Example(QDialog, QWidget):
         xmlStr = xmlStr.decode().replace('\t', '').replace('\n', '')
         self.walletdom = xml.dom.minidom.parseString(xmlStr)
         self.walletroot = self.walletdom.documentElement
+
+    def praseSettingFile(self):
+        self.settingdom = xml.dom.minidom.parse(pathConfig.lastSettingPath + "setting.xml")  #
+        xmlStr = self.settingdom.toprettyxml(indent='', newl='', encoding='utf-8')
+        xmlStr = xmlStr.decode().replace('\t', '').replace('\n', '')
+        self.settingdom = xml.dom.minidom.parseString(xmlStr)
+        xmlStr = self.settingdom.toprettyxml(indent='', newl='', encoding='utf-8')
+        xmlStr = xmlStr.decode().replace('\t', '').replace('\n', '')
+        self.settingdom = xml.dom.minidom.parseString(xmlStr)
+        self.settingroot = self.settingdom.documentElement  #
+        if len(self.settingroot.getElementsByTagName('minewallet')[0].firstChild.data) == 42:
+            self.ui.lineEdit_7.setText(self.settingroot.getElementsByTagName('minewallet')[0].firstChild.data)
+            #self.refreshmininfo()
+        if len(self.settingroot.getElementsByTagName('wallet')[0].firstChild.data) == 42:
+            self.m_wallet.address = self.settingroot.getElementsByTagName('wallet')[0].firstChild.data
+        #判断MinerP这个标签是否有值，如果没有值的话则正常打开程序，有账户则跳转到上一次打开的账户
+        if self.settingroot.getElementsByTagName('MinerP')[0].firstChild.data == ' ':
+            #self.ui.stackedWidget.setCurrentIndex(1)
+            self.pressbtn0()
+            self.setpswform.ui.pushButton_35.setIcon(QIcon(":/pic/close2.png"))
+            self.setpswform.setable = 0
+            self.pswform = pswform(self)
+            self.show()
+        #有值的话则打开，则先打开输入密码的创窗口，输入密码之后才可以可以使用钱包，如果上次有打开的钱包则打开那个钱包
+        else:
+            self.ui.stackedWidget.setCurrentIndex(0)
+            self.setpswform.ui.pushButton_35.setIcon(QIcon(":/pic/open2.png"))
+            self.setpswform.setable = 1
+            self.pswform = pswform(self)
+            self.show()
+            self.pswform.show_w2(self)
+
+        #不管需不需要输入密码，这个过程过了之后就打开之前记录地址的钱包，并且定位到mywallet页面，如果没有钱包则还在创建钱包的页面
+        if self.m_wallet.address != '':
+            self.openWalletByAddress(self.m_wallet.address)
+
+
+
+
+
+
+
+
 
 
 
@@ -4418,10 +4600,14 @@ class nationpos:
 
 
 
-class pathConfig:
-    keystoresPath = "./keystores/"
-    picPath = ":/pic/"
-    lastSettingPath = "./Temp/"
+
+
+
+
+
+
+
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
@@ -4429,6 +4615,11 @@ if __name__ == '__main__':
         os.makedirs(pathConfig.keystoresPath)
     if not (os.path.exists(pathConfig.lastSettingPath)):
         os.makedirs(pathConfig.lastSettingPath)
+    #windows下底部工具栏不显示图标的问题
+    print("system : " + platform.system())
+    if platform.system() == 'Windows':
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("myappid")
     ex = Example()
     recieveform = recieveform(ex)
     mulwalform = mulwalform(ex)

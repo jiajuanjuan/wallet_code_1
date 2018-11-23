@@ -17,8 +17,8 @@ class loadConfigFile:
         self.addrdom = xml.dom.minidom.parseString(xmlStr)
         self.addrroot = self.addrdom.documentElement
 
-        if os.path.isfile(pathConfig.lastSettingPath + 'wa.xml'):
-            self.walletdom = xml.dom.minidom.parse(pathConfig.lastSettingPath + "wa.xml")
+        if os.path.isfile(pathConfig.lastSettingPath + 'Wallets.xml'):
+            self.walletdom = xml.dom.minidom.parse(pathConfig.lastSettingPath + 'Wallets.xml')
             xmlStr = self.walletdom.toprettyxml(indent='', newl='', encoding='utf-8')
             xmlStr = xmlStr.decode().replace('\t', '').replace('\n', '')
             self.walletdom = xml.dom.minidom.parseString(xmlStr)
@@ -28,7 +28,7 @@ class loadConfigFile:
             self.walletroot = self.walletdom.documentElement
         else:
             ret = Core_func.generatewalletXml()
-            self.walletdom = xml.dom.minidom.parse(pathConfig.lastSettingPath + "wa.xml")
+            self.walletdom = xml.dom.minidom.parse(pathConfig.lastSettingPath + 'Wallets.xml')
             xmlStr = self.walletdom.toprettyxml(indent='', newl='', encoding='utf-8')
             xmlStr = xmlStr.decode().replace('\t', '').replace('\n', '')
             self.walletdom = xml.dom.minidom.parseString(xmlStr)
