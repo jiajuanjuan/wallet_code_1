@@ -15,6 +15,8 @@ import datetime
 import subprocess
 import eth_utils
 import eth_hash
+#精确计算,保持精度
+from decimal import *
 
 """
 failure reason for Generate_Two_Key function
@@ -221,20 +223,14 @@ def Import_mnemonic(passphrase1, passphrase2, mnemonicwords):
 
 
 def Transaction_out(private_key, toaddr, value, gas, gasprice, nonce):
-    print(private_key)
     toaddr = w3.toChecksumAddress(toaddr)
     acct = Account.privateKeyToAccount(private_key)
-    print(acct)
     public_key = acct.address
-    print(public_key)
-    # nonce = requests.get(
-    #     "https://waltonchain.net:18950/api/getSendTransactionNonce/"+public_key).json()["send_nonce"]
-    print(nonce)
     transaction = {
         'to': toaddr,
-        'value': int(float(value) * (10 ** 18)),
+        'value': int(Decimal(value) * (10 ** 18)),
         'gas': int(gas),
-        'gasPrice': int(float(gasprice) * (10 ** 18)),
+        'gasPrice': int(Decimal(gasprice) * (10 ** 18)),
         'nonce': nonce,
         'chainId': 15
     }
@@ -245,15 +241,37 @@ def Transaction_out(private_key, toaddr, value, gas, gasprice, nonce):
         print("sendData :" + w3.toHex(signed.rawTransaction))
     except Exception as err:
         print("signTransaction Error : " + str(err))
-    try:
-        #print("sendDataType :" + type(w3.toHex(signed.rawTransaction)))
-        tx_hash = requests.get("https://waltonchain.net:18950/api/sendRawTransaction/" + w3.toHex(signed.rawTransaction)).json()
+        return (False, nonce, "")
 
+    try:
+        print("jjjjjjjjjjjjjjnonce : " + str(nonce))
+        tx_hash = requests.get("https://waltonchain.net:18950/api/sendRawTransaction/" + w3.toHex(signed.rawTransaction)).json()
     except Exception as err:
         print("sendRawTransaction Error : " + str(err))
-        return (0,0)
-    print("tx_hash : " + tx_hash['tx_hash'])
-    return (1, tx_hash['tx_hash'])
+        return (False,nonce,str(err))
+
+    #判断如果是nonce too low的错误，则将nonce的值自动+1 再请求
+    if "error" in tx_hash.keys():
+        while tx_hash["error"] == "nonce too low":
+            nonce += 1
+            transaction = {
+                'to': toaddr,
+                'value': int(Decimal(value) * (10 ** 18)),
+                'gas': int(gas),
+                'gasPrice': int(Decimal(gasprice) * (10 ** 18)),
+                'nonce': nonce,
+                'chainId': 15
+            }
+            signed = w3.eth.account.signTransaction(transaction, private_key)
+            tx_hash = requests.get(
+                "https://waltonchain.net:18950/api/sendRawTransaction/" + w3.toHex(signed.rawTransaction)).json()
+            if "error" not in tx_hash.keys():
+                return  (True,nonce,tx_hash["tx_hash"])
+        (True, nonce, tx_hash["error"])
+
+    return  (True,nonce,tx_hash["tx_hash"])
+    #返回值的格式 1、返回请求成功还是失败，2、返回nonce的值（可能经过了自加加的操作），返回请求得到的结果
+
 
 
 def startCPUMining():

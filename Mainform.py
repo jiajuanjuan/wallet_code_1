@@ -69,10 +69,12 @@ from matplotlib.figure import Figure
 #判断当前是什么平台的模块
 import platform
 import MyXml
-from ApplicationHelper import  ApplicationHelper
+from ApplicationHelper import  ApplicationHelper,sortByTimeOfObj
 from TransactionListHelper import  TransactionList, AccountTransactionsListEntity,AccountTransactionsEntity,AddressTransactionsEntity
 from AddressLastBalanceEntity import HistoryBalanceHelper ,AddressBalanceEntity,BalanceEntity
-
+from TransactionSendListHelper import  TransactionSendListHelper,AddressTransactionSendEntity,TransactionSendEntity
+#sort函数的key参数可以传入一个比较函数，用这个模块将函数转成你key传入
+import functools
 class deleteform(QDialog, Ui_DeleteForm):
     def __init__(self,PRAE):
         super().__init__()
@@ -555,6 +557,15 @@ class enterpswform(QDialog, Ui_EnterPswForm):
             self.passwordeye = 1
 
     def getprikey(self, addr, password):
+        #进行交易之前先判断nonce的值为0的话标识还没请求过这个值，则先进行nonce值的请求
+        if ex.m_wallet.nonce == 0:
+            retNonce =  Core_func.getAccountNonce(ex.m_wallet.address)
+            if retNonce[0] == False:
+                self.publishform.show_w2(retNonce[1], self)
+                return 1
+            ex.m_wallet.nonce = retNonce[1]
+
+
         print("getprikey" )
         print(addr, password)
         filename = pathConfig.keystoresPath +addr[2:18] + ".keystore"
@@ -577,20 +588,27 @@ class enterpswform(QDialog, Ui_EnterPswForm):
         if self.needtosend == 1:
             ex.m_wallet.privateKey = self.prikey
             try:
+                print("trans Value : "+  ex.Trans.value)
                 ret = Core_func.Transaction_out(
                     ex.m_wallet.privateKey, ex.Trans.toaddr, ex.Trans.value, ex.Trans.Gas, ex.Trans.Gasprice,ex.m_wallet.nonce)
             except Exception as err:
                 self.publishform.show_w2(err, self)
                 return 1
-            if ret[0] == 1:
-                # print(ret[1][1])
-                # try:
-                #     transdetail = Core_func.getTransactionInfo(ret[1][1])
-                # except Exception as err:
-                #     self.publishform.show_w2('get tx_hash failed')
-                # #print(transdetail[1])
-                print(ret[1])
+            if ret[0] == True:
+                ex.m_wallet.nonce = ret[1]
+                tx_hash = ret[2]
+                try:
+                    TransactionSend = TransactionSendEntity(addressFrom = ex.m_wallet.address,gasPrice = ex.Trans.Gasprice,gas= ex.Trans.Gas,
+                                                        value = ex.Trans.value,addressTo= ex.Trans.toaddr,nonce= ex.m_wallet.nonce)
+                    TransactionSend.tx_hash = tx_hash
+                    tslHelper = TransactionSendListHelper()
+                    tslHelper.add(ex.m_wallet.address,TransactionSend)
+                except Exception as err:
+                    print("add tslHelper Error : "+ str(err))
 
+
+
+                '''
                 Core_func.addtranslistxml(ex.transdom, ex.transroot, addr, time.strftime('%Y-%m-%d', time.localtime(time.time())), addr, 'none',
                                           ex.Trans.toaddr, ex.Trans.Gasprice, ' ', ' ', ret[1],
                                           ex.Trans.Gas, ex.Trans.value, datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
@@ -600,6 +618,7 @@ class enterpswform(QDialog, Ui_EnterPswForm):
                                           ex.Trans.toaddr, ex.Trans.Gasprice, ' ', ' ', ret[1],
                                           ex.Trans.Gas, ex.Trans.value, datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
                                           'Recieve', 'Submitted')
+                '''
                 # self.closeform()
                 # self.publishform.show_w2('transaction successfully',self)
 
@@ -608,14 +627,14 @@ class enterpswform(QDialog, Ui_EnterPswForm):
                 ex.Trans.Gas = ''
                 ex.Trans.Gasprice = ''
                 ex.Trans.toaddr = ''
-                ex.refresh()
-                ex.initchart()
+                #ex.refresh()
+                #ex.initchart()
                 ex.m_wallet.nonce = ex.m_wallet.nonce+1
                 self.publishform.show_w2('transaction succeed', self)
                 self.closeform()
                 # self.publishform.show_w2('transaction succeed', self)
             else:
-                self.publishform.show_w2('transaction failed', self)
+                self.publishform.show_w2('transaction failed'+ ret[2] , self)
         else:
             ex.ui.lineEdit_9.setText(self.prikey)
             ex.m_wallet.privateKey = self.prikey
@@ -1813,7 +1832,42 @@ class Example(QDialog, QWidget):
             #出错就先不更新
             print("Error : " + str(err))
 
+
+    def getAllTransactions(self):
+        transList = []
+        #在translist中找到当前要显示的钱包地址的所有交易记录
+        tHelper = TransactionList()
+        addressEntity = tHelper.find(self.m_wallet.address)
+        #addressEntity 的length为0代表重来没有过交易信息，更不可能有转出信息（新创建的账户是没有钱的）
+        if len(addressEntity.AccountTransactionsEntityList)==0:
+            return  (False,transList)
+        #有交易则 刷新交易记录上方 updata的时间
+        self.ui.lineEdit_31.setText(addressEntity.UpdateTime)
+        #将所有交易都放入列表中
+        for i in range(len(addressEntity.AccountTransactionsEntityList)):
+            transList.append(addressEntity.AccountTransactionsEntityList[i])
+
+        #在transsendlist中找到当前要显示的钱包地址的所有交易记录
+        tsHelper = TransactionSendListHelper()
+        addressSendEntity = tsHelper.find(self.m_wallet.address)
+        for i in range(len(addressSendEntity.TransactionSendList)):
+            transSendEntity = addressSendEntity.TransactionSendList[i]
+            #Success 代表在translist中已经有了，transSendlist中的数据就不需要了,所以在不是success的情况下就添加进去
+            if transSendEntity.blockType != "Success":
+                AccountTransEntity = AccountTransactionsEntity()
+                AccountTransEntity.setValue(transSendEntity)
+                transList.append(AccountTransEntity)
+        #返回之前对list按照 对象的时间属性进行排序
+        if len(transList) > 1:
+            transList.sort(key=functools.cmp_to_key(sortByTimeOfObj.date_compare))
+        return (True,transList)
+
+
+
+
+
     def showTransactions(self):
+        '''
         #在配置文件中找到该钱包对象，找不到直接返回，否则进行数据额刷新
         tHelper = TransactionList()
         addressEntity = tHelper.find(self.m_wallet.address)
@@ -1823,15 +1877,29 @@ class Example(QDialog, QWidget):
             return
         #刷新交易记录上方 updata的时间
         self.ui.lineEdit_31.setText(addressEntity.UpdateTime)
+        '''
+
+        #获取到所有交易记录
+        result = self.getAllTransactions()
+        if result[0] == False:
+            return
+
+        allTransList = result[1]
+
         #跟新每一笔交易
-        #根据当前钱包的交易记录数给tablewidget设置合适的行数
-        iCount = len(addressEntity.AccountTransactionsEntityList)
+        #根据当前钱包的交易记录数给tablewidget设置合适的行
+        iCount = len(allTransList)
+        #当前该地址没有数据则清空记录返回
+        if iCount < 1:
+            self.ui.TransactionHistory.clear()
+            self.ui.TransactionHistory.setRowCount(0)
+            return
         #清空并设置新的行数
         self.ui.TransactionHistory.clear()
         self.ui.TransactionHistory.setRowCount(iCount)
 
         for i in range(iCount):
-            accountTransEntity = addressEntity.AccountTransactionsEntityList[i]
+            accountTransEntity = allTransList[i]
             #设备每条记录是转出还是转入的图标
             item = QTableWidgetItem()
             #记录是转出还是转入 "-" 还是"+"
@@ -1879,10 +1947,10 @@ class Example(QDialog, QWidget):
 
 
     def resetTransactionThreadFlag(self, result,nonce):
-        self.transactionListGetting = False
         if result == True:
-            self.m_wallet.nonce = nonce
+            #self.m_wallet.nonce = nonce
             self.showTransactions()
+        self.transactionListGetting = False
 
 
     #20天的余额变化情况
@@ -3811,6 +3879,14 @@ class Example(QDialog, QWidget):
         # My Wallet 页面刷新的按钮
         btntraHisrefresh = self.ui.pushButton_46
         btntraHisrefresh.clicked.connect(self.btntraHisrefreshClick)
+
+        self.TransactionTimer = QTimer(self)  #
+        self.TransactionTimer.timeout.connect(self.getMWTransactionListData)  #
+        self.TransactionTimer.start(60000)  #
+
+        self.BalanceTimer = QTimer(self)  #
+        self.BalanceTimer.timeout.connect(self.getMWHistoryBalance)  #
+        self.BalanceTimer.start(60000)  #
 
 
     def createConnection(self):

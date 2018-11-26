@@ -1,8 +1,11 @@
-from ApplicationHelper import  pathConfig
+from ApplicationHelper import  pathConfig,ApplicationHelper
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
+#精确计算,保持精度
+from decimal import *
+
 
 
 #读取配置文件转成对象
@@ -31,6 +34,8 @@ class TransactionList:
         if has == False:
             self.addressTransactionsEntityList.append(addressEntity)
         self.save()
+
+
 
     def save(self):
         f = open(pathConfig.lastSettingPath + "TransactionList.xml", "wb")
@@ -80,6 +85,20 @@ class AccountTransactionsEntity:
         self.utc_timestamp = ""
         self.transType = ""
         self.blockType = ""
+
+    def setValue(self,sendEntity):
+        self.addressFrom = sendEntity.addressFrom
+        self.gasPrice = sendEntity.gasPrice
+        self.blockHash = sendEntity.tx_hash
+        self.transacIndex = ""
+        self.tx_hash = sendEntity.tx_hash
+        self.gas = Decimal(sendEntity.gas) / ApplicationHelper.Wei
+        self.addressTo = sendEntity.addressTo
+        self.value = Decimal(sendEntity.value) / ApplicationHelper.Wei
+        self.utc_timestamp = sendEntity.timestamp
+        self.transType = "Send"
+        self.blockType = sendEntity.blockType
+
 
 
 
