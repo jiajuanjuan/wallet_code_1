@@ -18,7 +18,6 @@ class sortByTimeOfObj:
     def date_compare(item1, item2):
         t1 = time.mktime(time.strptime(item1.utc_timestamp, '%Y-%m-%d %H:%M:%S'))
         t2 = time.mktime(time.strptime(item2.utc_timestamp, '%Y-%m-%d %H:%M:%S'))
-        print(t1, t2)
         if t1 < t2:
             return -1
         elif t1 > t2:

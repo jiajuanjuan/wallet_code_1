@@ -2260,7 +2260,7 @@ class Ui_Form(object):
 "background-color: rgb(255, 255, 255);\n"
 "color: rgb(135, 0, 255);")
         self.LogMessage.setObjectName("LogMessage")
-        self.LogMessage.setColumnCount(3)
+        self.LogMessage.setColumnCount(4)
         self.LogMessage.setRowCount(0)
         item = QtWidgets.QTableWidgetItem()
         self.LogMessage.setHorizontalHeaderItem(0, item)

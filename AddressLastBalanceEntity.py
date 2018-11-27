@@ -10,10 +10,6 @@ class HistoryBalanceHelper:
         try:
             f = open(pathConfig.lastSettingPath + "HistoryBalance.xml", "rb")
             temp = pickle.load(f)
-            print('####------------------------------')
-            pprint(temp)
-            print(len(temp.addressBalanceEntityList))
-            print('####------------------------------end')
             self.addressBalanceEntityList = temp.addressBalanceEntityList
             f.close()
         except Exception as err:

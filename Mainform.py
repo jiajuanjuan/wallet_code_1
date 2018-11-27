@@ -598,8 +598,8 @@ class enterpswform(QDialog, Ui_EnterPswForm):
                 ex.m_wallet.nonce = ret[1]
                 tx_hash = ret[2]
                 try:
-                    TransactionSend = TransactionSendEntity(addressFrom = ex.m_wallet.address,gasPrice = ex.Trans.Gasprice,gas= ex.Trans.Gas,
-                                                        value = ex.Trans.value,addressTo= ex.Trans.toaddr,nonce= ex.m_wallet.nonce)
+                    TransactionSend = TransactionSendEntity(addressFrom = ex.m_wallet.address.lower(),gasPrice = ex.Trans.Gasprice,gas= ex.Trans.Gas,
+                                                        value = ex.Trans.value,addressTo= ex.Trans.toaddr.lower(),nonce= ex.m_wallet.nonce)
                     TransactionSend.tx_hash = tx_hash
                     tslHelper = TransactionSendListHelper()
                     tslHelper.add(ex.m_wallet.address,TransactionSend)
@@ -1184,7 +1184,7 @@ class mingwaform(QDialog, Ui_AccountForm):
         self.close()
 
 class messform(QDialog, Ui_MessForm):
-    def __init__(self, PRAE):
+    def __init__(self, parent,entity):
         super().__init__()
         self.ui = Ui_MessForm()
         self.ui.setupUi(self)
@@ -1194,8 +1194,24 @@ class messform(QDialog, Ui_MessForm):
         btnconfirm = self.ui.pushButton_9
         btnconfirm.clicked.connect(self.closeform)
         self.publishform = publishform(self)
-        self.parentw = PRAE
+        self.parentw = parent
+        self.TransEntity = entity
         self.close()
+
+    def show(self):
+        self.ui.lineEdit_12.setText(str(self.TransEntity.blockNumber))
+        self.ui.lineEdit_11.setText(self.TransEntity.utc_timestamp)
+        self.ui.lineEdit_9.setText(str(self.TransEntity.gas))
+        self.ui.lineEdit_10.setText(str(self.TransEntity.gasUsed))
+        self.ui.lineEdit_8.setText(self.TransEntity.addressTo)
+        self.ui.lineEdit_7.setText(self.TransEntity.addressFrom)
+        self.ui.lineEdit_6.setText(str(self.TransEntity.value))
+        self.ui.textEdit.setText(self.TransEntity.tx_hash)
+        screen = self.parentw.geometry()
+        size = self.geometry()
+        self.move(screen.left() + (screen.width() - size.width()) / 2,
+                  screen.top() + (screen.height() - size.height()) / 2)
+        self.exec_()
 
     def show_w2(self, QTableWidgetItem):
         QTableWidgetItem.setForeground(QBrush(QColor(0, 0, 0)))
@@ -1209,10 +1225,8 @@ class messform(QDialog, Ui_MessForm):
         # if ret[0] == 1:
         #     ret[1][row]
 
-        ind = Core_func.QTableWidget.indexFromItem(
-            ex.ui.LogMessage, ex.ui.LogMessage.item(row, 2))
-        indtime = Core_func.QTableWidget.indexFromItem(
-            ex.ui.LogMessage, ex.ui.LogMessage.item(row, 1))
+        ind = Core_func.QTableWidget.indexFromItem(ex.ui.LogMessage, ex.ui.LogMessage.item(row, 2))
+        indtime = Core_func.QTableWidget.indexFromItem(ex.ui.LogMessage, ex.ui.LogMessage.item(row, 1))
         print(ind.data())
         print(ind.data().split('tx_hash')[1][1:])
         try:
@@ -1736,24 +1750,16 @@ class Example(QDialog, QWidget):
     ############################MyWallet 页的处理###################################################
     #每次显示MyWallet那一个table页的时候都初始化一下页面的信息 包括（余额，交易记录，交易记录上面的刷新时间，地址，密钥）
     def initMyWallet(self):
-        print("kkkkkkkkkkk"+self.m_wallet.address)
         if self.m_wallet.address == '':
             return
         #根据当前的钱包保存在配置文件中的数据先刷新界面
         self.refreshMWLocalData()
         #启动线程联网刷新市场数据
         self.getMWMarket()
-
-        #GetIsGMN(m_address) #c#有这个函数，目前没有加进来
         #启动一个线程去联网刷新余额，交易记录，nonce 等信息
         self.getMWTransactionListData()
         #启动一个线程联网刷新20天的交易信息
         self.getMWHistoryBalance()
-
-        #启动GetIsGMN的定时器 #现在python版本的还没有 C#版本的有
-        #启动 刷新交易信息的定时器
-
-        #启动刷新20天的余额历史的定时器
 
     #根据保存的配置文件里面的记录进行刷新
     def refreshMWLocalData(self):
@@ -1762,6 +1768,7 @@ class Example(QDialog, QWidget):
         #刷新余额变化趋势
         self.showBalance()
 
+    #ui刷新余额折线图
     def showBalance(self):
         hbHelper = HistoryBalanceHelper()
         addressEntity = hbHelper.find(self.m_wallet.address)
@@ -1831,8 +1838,7 @@ class Example(QDialog, QWidget):
         except Exception as err:
             #出错就先不更新
             print("Error : " + str(err))
-
-
+    #结合 transSendList和 transList 得到所有要显示的交易记录
     def getAllTransactions(self):
         transList = []
         #在translist中找到当前要显示的钱包地址的所有交易记录
@@ -1853,19 +1859,15 @@ class Example(QDialog, QWidget):
         for i in range(len(addressSendEntity.TransactionSendList)):
             transSendEntity = addressSendEntity.TransactionSendList[i]
             #Success 代表在translist中已经有了，transSendlist中的数据就不需要了,所以在不是success的情况下就添加进去
-            if transSendEntity.blockType != "Success":
+            if transSendEntity.blockType != ApplicationHelper.transSuccess:
                 AccountTransEntity = AccountTransactionsEntity()
                 AccountTransEntity.setValue(transSendEntity)
                 transList.append(AccountTransEntity)
         #返回之前对list按照 对象的时间属性进行排序
         if len(transList) > 1:
-            transList.sort(key=functools.cmp_to_key(sortByTimeOfObj.date_compare))
+            transList.sort(key=functools.cmp_to_key(sortByTimeOfObj.date_compare),reverse=True)
         return (True,transList)
-
-
-
-
-
+    #ui刷新交易记录
     def showTransactions(self):
         '''
         #在配置文件中找到该钱包对象，找不到直接返回，否则进行数据额刷新
@@ -1896,7 +1898,7 @@ class Example(QDialog, QWidget):
             return
         #清空并设置新的行数
         self.ui.TransactionHistory.clear()
-        self.ui.TransactionHistory.setRowCount(iCount)
+        self.ui.TransactionHistory.setRowCount(iCount+1)
 
         for i in range(iCount):
             accountTransEntity = allTransList[i]
@@ -1926,7 +1928,7 @@ class Example(QDialog, QWidget):
             #更新我的钱包页面 刷新按钮的状态
         self.resetTraHisrefreshBtn()
 
-
+    #联网获得市场信息
     def getMWMarket(self):
         #调用联网获取市场数据的方法，成功则进行刷新，否则不刷新
         pass
@@ -1945,15 +1947,14 @@ class Example(QDialog, QWidget):
             self.getTransactionDataThread.getTransfinishSignal.connect(self.resetTransactionThreadFlag)
             self.getTransactionDataThread.start()
 
-
+    #获取交易信息的线程结束信号的槽函数
     def resetTransactionThreadFlag(self, result,nonce):
         if result == True:
             #self.m_wallet.nonce = nonce
             self.showTransactions()
         self.transactionListGetting = False
 
-
-    #20天的余额变化情况
+    #联网获取近20天的余额变化
     def getMWHistoryBalance(self):
         if self.historyBalanceGetting == False:
             self.historyBalanceGetting = True
@@ -1962,11 +1963,62 @@ class Example(QDialog, QWidget):
             self.getHistoryBalanceThread.getBalancefinishSignal.connect(self.resetHistoryBalanceThreadFlag)
             self.getHistoryBalanceThread.start()
 
-
+    #获取交易信息的线程结束信号的槽函数
     def resetHistoryBalanceThreadFlag(self, result):
-        self.historyBalanceGetting = False
         if result == True:
             self.showBalance()
+        self.historyBalanceGetting = False
+
+    ########################################################################################
+    #######################更新Message 页签的内容###########################################
+    def initMessage(self):
+        self.refreshMeassageData()
+
+        # 根据MyWallet的交易信息刷新Message页面
+
+    def refreshMeassageData(self):
+        try:
+            # 清除原本tablewidget里面的内容
+            self.ui.LogMessage.clear()
+            # 反序列化，将文件内容转成对象
+            tHelper = TransactionList()
+            addressEntity = tHelper.find(self.m_wallet.address)
+            iCount = len(addressEntity.AccountTransactionsEntityList)
+            # addressEntity 的length为0代表重来没有过交易信息
+            if iCount == 0:
+                return
+            # 设置显示message的条数
+            self.ui.LogMessage.setRowCount(iCount + 1)
+            print("iCount  = " + str(iCount))
+            for i in range(iCount):
+                accountTransEntity = addressEntity.AccountTransactionsEntityList[i]
+                strContent = 'From:' + accountTransEntity.addressFrom.lower() + '\n' + 'To:' + accountTransEntity.addressTo.lower() + '\n' + 'Value:' + str(
+                    accountTransEntity.value)
+                print(str(i) + " = " + strContent)
+                entityItem = QTableWidgetItem()
+                entityItem.setData(i, accountTransEntity)
+                self.ui.LogMessage.setItem(i, 0, QTableWidgetItem(accountTransEntity.transType))
+                self.ui.LogMessage.setItem(i, 1, QTableWidgetItem(accountTransEntity.utc_timestamp))
+                self.ui.LogMessage.setItem(i, 2, QTableWidgetItem(strContent))
+                self.ui.LogMessage.setItem(i, 3, entityItem)
+
+                # 除了显示的内容之外，一行保存一个对象，用来查看详细信息
+
+        except Exception as err :
+            print("refreshMeassageData Error : "+ str(err))
+
+    def showMessageDetails(self):
+        print("itemclick")
+        try:
+            currentItem = self.ui.LogMessage.currentItem()
+            iRow = currentItem.row()
+            transEntityItem = self.ui.LogMessage.item(iRow, 3)
+            transEntity = transEntityItem.data(iRow)
+            messformDialog = messform(self, transEntity)
+            messformDialog.show()
+        except Exception as err :
+            print("showMessageDetails Error : " + str(err) )
+
 
     ########################################################################################
 
@@ -2127,6 +2179,8 @@ class Example(QDialog, QWidget):
         self.setToolBoxNoHeighlight()
         self.ui.message.setIcon(QIcon(":/pic/message1.png"))
         self.ui.stackedWidget.setCurrentIndex(3)
+        #展现message页面的时候，都去重新初始化一个这个页面的数据
+        self.initMessage()
 
     def pressbtn4(self):
         self.setToolBoxNoHeighlight()
@@ -3142,6 +3196,7 @@ class Example(QDialog, QWidget):
             self.refreshTop()
 
     def refreshlog(self):
+        return
         try:
             print(self.ui.LogMessage.rowCount())
             ret = Core_func.getTransactionRecord(self.m_wallet.address)
@@ -3888,7 +3943,12 @@ class Example(QDialog, QWidget):
         self.BalanceTimer.timeout.connect(self.getMWHistoryBalance)  #
         self.BalanceTimer.start(60000)  #
 
+    def createMessageConnection(self):
+        self.ui.LogMessage.itemClicked.connect(self.showMessageDetails)
 
+
+    
+    
     def createConnection(self):
 
         self.LastBlockTimer = QTimer(self)  #
@@ -4059,8 +4119,8 @@ class Example(QDialog, QWidget):
         btn2set1.clicked.connect(lambda: self.setpswform.show_w2(self))
 
         # Message page
-        btnMark = self.ui.pushButton_37
-        btnMark.clicked.connect(self.purple2black)
+        #btnMark = self.ui.pushButton_37
+        #btnMark.clicked.connect(self.purple2black)
 
         # mining page
         self.mingwaform = mingwaform(self)
@@ -4139,9 +4199,10 @@ class Example(QDialog, QWidget):
         self.ui.LogMessage.setShowGrid(0)
         self.ui.LogMessage.horizontalHeader().setStretchLastSection(1)
         self.ui.LogMessage.verticalHeader().setDefaultSectionSize(57)
-        self.ui.LogMessage.setColumnWidth(0, 150)  #
-        self.ui.LogMessage.setColumnWidth(1, 150)  #
-        self.ui.LogMessage.setColumnWidth(2, 100)  #
+        self.ui.LogMessage.setColumnWidth(0, 130)  #
+        self.ui.LogMessage.setColumnWidth(1, 160)  #
+        self.ui.LogMessage.setColumnWidth(2, 300)  #
+        self.ui.LogMessage.setColumnWidth(3, 10)  #
         self.ui.LogMessage.setFrameShape(QFrame.NoFrame)  #
         self.ui.LogMessage.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.ui.LogMessage.setSelectionMode(
@@ -4324,6 +4385,7 @@ class Example(QDialog, QWidget):
         self.show()
         self.createConnection()
         self.createMWConnection()
+        self.createMessageConnection()
 
 
 
@@ -4701,11 +4763,12 @@ if __name__ == '__main__':
     mulwalform = mulwalform(ex)
     pubaddrForm = pubaddrForm(ex)
     newcontactform = newcontactform(ex)
-    messform = messform(ex)
+
     ex.ui.pushButton_10.clicked.connect(lambda: recieveform.show_w2(ex))
     ex.ui.pushButton_36.clicked.connect(lambda: pubaddrForm.show_w2(ex))
     ex.ui.pushButton_38.clicked.connect(lambda: newcontactform.show_w2(ex))
-    ex.ui.LogMessage.itemClicked.connect(messform.show_w2)
+    #messform = messform(ex)
+    #ex.ui.LogMessage.itemClicked.connect(messform.show_w2)
     ex.ui.ContactsT.itemClicked.connect(ex.choosebtn)
     ex.ui.multWallet.itemClicked.connect(ex.walletbtn)
     sys.exit(app.exec_())

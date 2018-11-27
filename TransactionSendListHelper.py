@@ -44,7 +44,7 @@ class TransactionSendListHelper:
     def find(self,address):
         for i in range(len(self.AddressTransactionSendList)):
             addressSendEntity = self.AddressTransactionSendList[i]
-            if addressSendEntity.Address == address:
+            if addressSendEntity.Address.lower() == address.lower():
                 return  addressSendEntity
         return  AddressTransactionSendEntity()
 
@@ -65,7 +65,7 @@ class TransactionSendEntity:
         self.value=value
         self.tx_hash=""
         #self.sign = "" 需要请求的数据键值对经过转化后的数据，只在请求的时候用到，暂时先不记录，如果后期请求失败需要重复请求的话则记录下来可以减少重复转换
-        self.timestamp= datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        self.timestamp= datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.blockType="Submitted"
 
 

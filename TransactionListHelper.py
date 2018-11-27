@@ -45,7 +45,7 @@ class TransactionList:
     def find(self,address):
         for i in range(len(self.addressTransactionsEntityList)):
             addressEntity = self.addressTransactionsEntityList[i]
-            if addressEntity.Address == address:
+            if addressEntity.Address.lower() == address.lower():
                 return  addressEntity
         return  AddressTransactionsEntity()
 
@@ -92,11 +92,11 @@ class AccountTransactionsEntity:
         self.blockHash = sendEntity.tx_hash
         self.transacIndex = ""
         self.tx_hash = sendEntity.tx_hash
-        self.gas = Decimal(sendEntity.gas) / ApplicationHelper.Wei
+        self.gas = sendEntity.gas
         self.addressTo = sendEntity.addressTo
-        self.value = Decimal(sendEntity.value) / ApplicationHelper.Wei
+        self.value = sendEntity.value
         self.utc_timestamp = sendEntity.timestamp
-        self.transType = "Send"
+        self.transType = ApplicationHelper.transSend
         self.blockType = sendEntity.blockType
 
 

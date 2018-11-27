@@ -7,6 +7,7 @@ from  ApplicationHelper import  ApplicationHelper
 import Core_func
 from TransactionListHelper import  TransactionList, AccountTransactionsListEntity,AccountTransactionsEntity,AddressTransactionsEntity
 from AddressLastBalanceEntity import HistoryBalanceHelper ,AddressBalanceEntity,BalanceEntity,BalanceEntityList
+from TransactionSendListHelper import  TransactionSendListHelper,AddressTransactionSendEntity,TransactionSendEntity
 from datetime import datetime, timedelta
 import time
 
@@ -154,10 +155,13 @@ class getTransactionDataThread(QtCore.QThread):
             print("1Error : " +  str(err))
             self.getTransfinishSignal.emit(False,nonce)
             return
+
     def refreshLocalFileData(self,strTrans):
         #先用变量记录下来，保证一次交易记录获取的过程中lastBlock的值是一样的
         lastBlock = ApplicationHelper.lastBlock
+
         try:
+
             lstEntity = AccountTransactionsListEntity()
             AccountTransListDict = json.loads(s=strTrans)
             lstEntity.__dict__ = AccountTransListDict
@@ -165,29 +169,53 @@ class getTransactionDataThread(QtCore.QThread):
             addressEntity = AddressTransactionsEntity()
             addressEntity.Address = self.address
             addressEntity.UpdateTime = self.time
-            currentAddress = self.address.lower()
+            # --------------------------------------------------------------------------------------
+            #用请求到的数据刷新TransactionList.xml的信息
             for i in range(len(lstEntity.tx_pagination_details)):
                 # 创建一个账户交易
                 accountEntity = AccountTransactionsEntity()
                 # 将网络请求的交易数据额dict赋值给账户交易对象的dict（用dict初始化对象）
                 accountEntity.__dict__ = lstEntity.tx_pagination_details[i]
                 # 跟新blockType的属性
-                if  lastBlock - accountEntity.blockNumber >= 11:
+                if lastBlock - accountEntity.blockNumber >= 11:
                     accountEntity.blockType = ApplicationHelper.transSuccess
                 else:
                     accountEntity.blockType = str(lastBlock - accountEntity.blockNumber + 1) + '/12'
                 # 跟新每笔交易的类型是send 还是receive
-                if accountEntity.addressFrom == currentAddress:
+                if accountEntity.addressFrom.lower() == self.address.lower():
                     accountEntity.transType = ApplicationHelper.transSend
                 else:
                     accountEntity.transType = ApplicationHelper.transReceive
-                #时间进行转换
+                # 时间进行转换
                 time_s = datetime.strptime(accountEntity.utc_timestamp, "%Y-%m-%d %H:%M:%S")
                 accountEntity.utc_timestamp = Core_func.utc2local(time_s).strftime('%Y-%m-%d %H:%M:%S')
                 # 将账户交易的对象添加到钱包的账户交易列表中
                 addressEntity.AccountTransactionsEntityList.append(accountEntity)
             tHelper = TransactionList()
             tHelper.add(addressEntity)
+            # --------------------------------------------------------------------------------------
+            # 更新transSendlist里面的信息
+            tsHelper = TransactionSendListHelper()
+            addressTransSendList = tsHelper.find(self.address)
+            for i in range(len(addressTransSendList.TransactionSendList)):
+                accountSendEntity = addressTransSendList.TransactionSendList[i]
+                bhas = False
+                if accountSendEntity.blockType != ApplicationHelper.transSuccess:
+                    print("---------------accountSendEntity value : "+ accountSendEntity.value)
+                    print("---------------accountSendEntity blockType : " + accountSendEntity.blockType)
+                    for i in range(len(addressEntity.AccountTransactionsEntityList)):
+                        accountEntity = addressEntity.AccountTransactionsEntityList[i]
+                        # 判断send的交易信息是否已经在请求到的list中存在(用hash值判断)，如果已经存在则transSend里面的交易类型就改为Success，否则暂不处理
+                        if accountSendEntity.tx_hash.lower() == accountEntity.tx_hash.lower():
+                            bhas = True
+                            break
+                    if bhas == True:
+                        accountSendEntity.blockType = ApplicationHelper.transSuccess
+                    else:
+                        # C#是会根据lastnonce判断是否失败的，这边暂时没有判断
+                        pass
+                    tsHelper.save()
+            # --------------------------------------------------------------------------------------
             return
         except Exception as err:
             print("2Error : " + str(err))
