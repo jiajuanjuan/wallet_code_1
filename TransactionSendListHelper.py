@@ -1,5 +1,5 @@
 from ApplicationHelper import  pathConfig
-from datetime import datetime, timedelta
+from datetime import datetime
 try:
     import cPickle as pickle
 except ImportError:

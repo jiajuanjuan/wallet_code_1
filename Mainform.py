@@ -1,3 +1,5 @@
+import datetime
+print("time import 1 = " + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 import re
 from PyQt5 import QtPrintSupport
 import subprocess
@@ -5,17 +7,19 @@ import sys
 import eth_hash
 # import ssl
 # from typing import Type
-from web3 import Web3
-from web3 import HTTPProvider
 import eth_utils
 import Warning_Form
-import Core_func
+
 from web3.auto import w3
+
+
+import Core_func
+
 import json
 import os
 import webbrowser
 import sys
-import time
+
 import shutil
 import cytoolz._signatures
 import cytoolz.utils
@@ -28,13 +32,13 @@ import time
 import xml.dom.minidom
 from eth_account import Account
 from PyQt5 import QtWidgets
-from PyQt5.QtCore import Qt, QSize, QTimer, QFile, QTextCodec
+from PyQt5.QtCore import Qt, QSize, QTimer, QFile, QTextCodec,QCoreApplication
 from PyQt5.QtWidgets import (QWidget, QToolTip, QDesktopWidget, QMessageBox, QTextEdit, QLabel,
                              QPushButton, QApplication, QMainWindow, QAction, qApp, QHBoxLayout, QVBoxLayout,
                              QGridLayout, QDialog, QFileDialog, QTableWidgetItem,
                              QLineEdit, QFrame, QAbstractItemView)
 from PyQt5.QtGui import *
-from PyQt5.QtCore import QCoreApplication
+
 from Mainform_QT import *
 from SendForm import Ui_SendForm
 from RecieveForm import Ui_ReceiveForm
@@ -75,6 +79,9 @@ from AddressLastBalanceEntity import HistoryBalanceHelper ,AddressBalanceEntity,
 from TransactionSendListHelper import  TransactionSendListHelper,AddressTransactionSendEntity,TransactionSendEntity
 #sort函数的key参数可以传入一个比较函数，用这个模块将函数转成你key传入
 import functools
+print("time import end = " + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+from datetime import datetime, timedelta
+
 class deleteform(QDialog, Ui_DeleteForm):
     def __init__(self,PRAE):
         super().__init__()
@@ -1213,21 +1220,6 @@ class messform(QDialog, Ui_MessForm):
         self.ui.textEdit.setText(entity.tx_hash)
         #self.exec_()
 
-    """   
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.dragPosition = event.globalPos() - self.frameGeometry().topLeft()
-            QApplication.postEvent(self, Core_func.QEvent(174))
-            print("--------------close MessageLog1")
-            event.accept()
-
-    def mouseMoveEvent(self, event):
-        if event.buttons() == Qt.LeftButton:
-            self.move(event.globalPos() - self.dragPosition)
-            print("--------------close MessageLog2")
-            event.accept()
-    """
-
     def closeform(self):
         self.accept()
 
@@ -1930,6 +1922,8 @@ class Example(QDialog, QWidget):
         self.historyBalanceGetting = False
 
     ########################################################################################
+
+
     #######################更新Message 页签的内容###########################################
     def initMessage(self):
         self.refreshMeassageData()
@@ -1937,6 +1931,7 @@ class Example(QDialog, QWidget):
         # 根据MyWallet的交易信息刷新Message页面
 
     def refreshMeassageData(self):
+        from MessageHelper import  AddressMessageEntity
         try:
             # 清除原本tablewidget里面的内容
             self.ui.LogMessage.clear()
@@ -1947,9 +1942,13 @@ class Example(QDialog, QWidget):
             # addressEntity 的length为0代表重来没有过交易信息
             if iCount == 0:
                 return
+            #加载之前浏览过的信息记录
+
+            AddressMEntity = self.mHelper.find(self.m_wallet.address)
+            txHashReadedList = AddressMEntity.Tx_hashList
+
             # 设置显示message的条数
             self.ui.LogMessage.setRowCount(iCount + 1)
-            print("iCount  = " + str(iCount))
             for i in range(iCount):
                 accountTransEntity = addressEntity.AccountTransactionsEntityList[i]
                 strContent = 'From:' + accountTransEntity.addressFrom.lower() + '\n' + 'To:' + accountTransEntity.addressTo.lower() + '\n' + 'Value:' + str(
@@ -1961,9 +1960,12 @@ class Example(QDialog, QWidget):
                 self.ui.LogMessage.setItem(i, 1, QTableWidgetItem(accountTransEntity.utc_timestamp))
                 self.ui.LogMessage.setItem(i, 2, QTableWidgetItem(strContent))
                 self.ui.LogMessage.setItem(i, 3, entityItem)
+                #如果已经读取过就设置为黑色
+                if accountTransEntity.tx_hash in txHashReadedList:
+                    self.MarkOneRead(i)
+
 
                 # 除了显示的内容之外，一行保存一个对象，用来查看详细信息
-
         except Exception as err :
             print("refreshMeassageData Error : "+ str(err))
 
@@ -1980,9 +1982,6 @@ class Example(QDialog, QWidget):
             #对话框关闭之后将记录设置成黑色并保存到配置文件中
             if result == QDialog.Accepted:
                 self.MarkOneRead(iRow)
-                
-
-
         except Exception as err :
             print("showMessageDetails Error : " + str(err) )
 
@@ -1996,14 +1995,19 @@ class Example(QDialog, QWidget):
             print("MarkAllRead Error : " + str(err))
 
     # 标志一条信息为已读
-    def MarkOneRead(self, row):
+    def MarkOneRead(self, iRow):
         #界面设置已读的message为黑色
-        self.ui.LogMessage.item(row, 0).setForeground(QBrush(QColor(0, 0, 0)))
-        self.ui.LogMessage.item(row, 1).setForeground(QBrush(QColor(0, 0, 0)))
-        self.ui.LogMessage.item(row, 2).setForeground(QBrush(QColor(0, 0, 0)))
-        self.ui.LogMessage.item(row, 3).setForeground(QBrush(QColor(0, 0, 0)))
+        self.ui.LogMessage.item(iRow, 0).setForeground(QBrush(QColor(0, 0, 0)))
+        self.ui.LogMessage.item(iRow, 1).setForeground(QBrush(QColor(0, 0, 0)))
+        self.ui.LogMessage.item(iRow, 2).setForeground(QBrush(QColor(0, 0, 0)))
+        self.ui.LogMessage.item(iRow, 3).setForeground(QBrush(QColor(0, 0, 0)))
         #将已读的message的hash值序列化，下次打开的时候能显示上次的状态
-        
+        transEntityItem = self.ui.LogMessage.item(iRow, 3)
+        transEntity = transEntityItem.data(0)
+        amEntity =  self.mHelper.find(self.m_wallet.address)
+        self.mHelper.addHashToAddressEntity(amEntity,transEntity.tx_hash)
+        self.mHelper.save()
+
 
    ########################################################################################
 
@@ -3918,13 +3922,15 @@ class Example(QDialog, QWidget):
 
     def createMessageConnection(self):
         self.ui.LogMessage.itemClicked.connect(self.showMessageDetails)
+
         btnMark = self.ui.pushButton_37
         btnMark.clicked.connect(self.MarkAllRead)
 
+        #定时刷新message的信息
+        self.MessageTimer = QTimer(self)  #
+        self.MessageTimer.timeout.connect(self.refreshMeassageData)  #
+        self.MessageTimer.start(60000)  #
 
-
-    
-    
     def createConnection(self):
 
         self.LastBlockTimer = QTimer(self)  #
@@ -4156,6 +4162,7 @@ class Example(QDialog, QWidget):
         self.ui.cw.setIcon(QIcon(":/pic/cw0.png"))
 
     def initUI(self):
+        print("time1 = "+ datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         self.ui = Ui_Form()
         self.ui.setupUi(self)
         self.setFixedSize(1030, 548)
@@ -4286,6 +4293,7 @@ class Example(QDialog, QWidget):
             "QScrollBar::handle:pressed{background:#9e9e9e;}"
             "QScrollBar::sub-line{background:transparent;}"
             "QScrollBar::add-line{background:transparent;}")
+        print("time2 = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
 
 
@@ -4298,7 +4306,7 @@ class Example(QDialog, QWidget):
         self.changepswform = changepswform(self)
         self.sendform = sendform(self)
         self.pswform = pswform(self)
-
+        print("time3 = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         # 主程序对象初始化
         self.m_wallet = Wallet
         self.Trans = Transaction
@@ -4327,43 +4335,55 @@ class Example(QDialog, QWidget):
         self.privatekeyeye = 1
         self.startstop = 1
         self.cpumode = 1
-
+        print("time4 = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        self.show()
         self.getLastBlock()
-
+        print("time5 = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
 
         # 加载上一次的配置信息，还需要整合以及添加一些配置文件（待做）
         self.loadConfigFile();
+        print("time6 = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
         # 将本地记录的钱包账户加载到multiple wallet
         self.initwallets()
-        #默认打开第一个钱包，我认为不对，先注销掉，应该打开上一次打开的钱包
-        #if self.m_wallet.address != '':
-         #   self.openwallet(0, 1)
+        print("time7 = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
         #初始化联系人，这个不需要联网，初始化一次就可以了
         self.initcontact()
+        print("time8 = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         #初始化挖矿结果，应该显示上一次挖矿账号30天内的挖矿结果
         self.initMingres()
+        print("time9 = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         #显示当前挖矿账户的挖矿记录
-        self.initmining()
+        #self.initmining()
+        print("time10 = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         #显示30天内的市场信息
-        self.initMarket()
+        #self.initMarket()
+        print("time11 = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         #初始化世界地图那张
-        self.initmap()
+        #self.initmap()
+        print("time12 = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
 
-        self.show()
+
+        print("time show = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
         # 开启walton服务器
         if self.startWalton() == False:
             return
         # 连接walton服务器的端口
+        from web3 import Web3
+        from web3 import HTTPProvider
         self.w3 = Web3(HTTPProvider('http://127.0.0.1:8545', request_kwargs={'timeout': 3}))
 
         self.createConnection()
         self.createMWConnection()
         self.createMessageConnection()
+
+        #加载已经读取过的message信息
+        from MessageHelper import MessageListHelper
+        self.mHelper = MessageListHelper()
 
 
 
@@ -4728,28 +4748,32 @@ class nationpos:
 
 
 if __name__ == '__main__':
+    print("time01 = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     app = QApplication(sys.argv)
     if not (os.path.exists(pathConfig.keystoresPath)):
         os.makedirs(pathConfig.keystoresPath)
     if not (os.path.exists(pathConfig.lastSettingPath)):
         os.makedirs(pathConfig.lastSettingPath)
+    print("time02 = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     #windows下底部工具栏不显示图标的问题
     print("system : " + platform.system())
     if platform.system() == 'Windows':
         import ctypes
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("myappid")
+    print("time03 = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     ex = Example()
+    print("time04 = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     recieveform = recieveform(ex)
     mulwalform = mulwalform(ex)
     pubaddrForm = pubaddrForm(ex)
     newcontactform = newcontactform(ex)
-
+    print("time05 = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     ex.ui.pushButton_10.clicked.connect(lambda: recieveform.show_w2(ex))
     ex.ui.pushButton_36.clicked.connect(lambda: pubaddrForm.show_w2(ex))
     ex.ui.pushButton_38.clicked.connect(lambda: newcontactform.show_w2(ex))
+    print("time06 = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
-    #messform = messform(ex)
-    #ex.ui.LogMessage.itemClicked.connect(messform.show_w2)
     ex.ui.ContactsT.itemClicked.connect(ex.choosebtn)
     ex.ui.multWallet.itemClicked.connect(ex.walletbtn)
     sys.exit(app.exec_())
+    print("time07 = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
