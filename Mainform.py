@@ -1194,79 +1194,43 @@ class messform(QDialog, Ui_MessForm):
         btnconfirm = self.ui.pushButton_9
         btnconfirm.clicked.connect(self.closeform)
         self.publishform = publishform(self)
-        self.parentw = parent
-        self.TransEntity = entity
-        self.close()
-
-    def show(self):
-        self.ui.lineEdit_12.setText(str(self.TransEntity.blockNumber))
-        self.ui.lineEdit_11.setText(self.TransEntity.utc_timestamp)
-        self.ui.lineEdit_9.setText(str(self.TransEntity.gas))
-        self.ui.lineEdit_10.setText(str(self.TransEntity.gasUsed))
-        self.ui.lineEdit_8.setText(self.TransEntity.addressTo)
-        self.ui.lineEdit_7.setText(self.TransEntity.addressFrom)
-        self.ui.lineEdit_6.setText(str(self.TransEntity.value))
-        self.ui.textEdit.setText(self.TransEntity.tx_hash)
-        screen = self.parentw.geometry()
+        #根据传入的对象初始化信息
+        self.initData(entity)
+        #根据父窗口设置子窗口的位置
+        screen = parent.geometry()
         size = self.geometry()
         self.move(screen.left() + (screen.width() - size.width()) / 2,
                   screen.top() + (screen.height() - size.height()) / 2)
-        self.exec_()
 
+    def initData(self,entity):
+        self.ui.lineEdit_12.setText(str(entity.blockNumber))
+        self.ui.lineEdit_11.setText(entity.utc_timestamp)
+        self.ui.lineEdit_9.setText(str(entity.gas))
+        self.ui.lineEdit_10.setText(str(entity.gasUsed))
+        self.ui.lineEdit_8.setText(entity.addressTo)
+        self.ui.lineEdit_7.setText(entity.addressFrom)
+        self.ui.lineEdit_6.setText(str(entity.value))
+        self.ui.textEdit.setText(entity.tx_hash)
+        #self.exec_()
 
-
-    def show_w2(self, QTableWidgetItem):
-        QTableWidgetItem.setForeground(QBrush(QColor(0, 0, 0)))
-        row = Core_func.QTableWidget.indexFromItem(
-            ex.ui.LogMessage, QTableWidgetItem).row()
-        ex.ui.LogMessage.item(row, 0).setForeground(QBrush(QColor(0, 0, 0)))
-        ex.ui.LogMessage.item(row, 1).setForeground(QBrush(QColor(0, 0, 0)))
-        ex.ui.LogMessage.item(row, 2).setForeground(QBrush(QColor(0, 0, 0)))
-
-        # ret = Core_func.getTransactionRecord(self.m_wallet.address)
-        # if ret[0] == 1:
-        #     ret[1][row]
-
-        ind = Core_func.QTableWidget.indexFromItem(
-            ex.ui.LogMessage, ex.ui.LogMessage.item(row, 2))
-        indtime = Core_func.QTableWidget.indexFromItem(
-            ex.ui.LogMessage, ex.ui.LogMessage.item(row, 1))
-        print(ind.data())
-        print(ind.data().split('tx_hash')[1][1:])
-        try:
-            ret = Core_func.getTransactionInfo(
-                ind.data().split('tx_hash')[1][1:])
-            self.ui.lineEdit_12.setText(str(ret[1][0]['blockNumber']))
-            self.ui.lineEdit_11.setText(indtime.data())
-            self.ui.lineEdit_9.setText(str(ret[1][0]['gas']))
-            self.ui.lineEdit_10.setText(str(ret[1][0]['gasUsed']))
-            self.ui.lineEdit_8.setText(str(ret[1][0]['addressTo']))
-            self.ui.lineEdit_7.setText(str(ret[1][0]['addressFrom']))
-            self.ui.lineEdit_6.setText(str(ret[1][0]['value']))
-            self.ui.textEdit.setText(str(ret[1][0]['tx_hash']))
-            screen = self.parentw.geometry()
-            size = self.geometry()
-            self.move(screen.left() + (screen.width() - size.width()) / 2,
-                      screen.top() + (screen.height() - size.height()) / 2)
-            self.exec_()
-        except Exception as err:
-            self.publishform.show_w2(
-                'get information failed,please try again', self)
-            return 1
-
+    """   
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.dragPosition = event.globalPos() - self.frameGeometry().topLeft()
             QApplication.postEvent(self, Core_func.QEvent(174))
+            print("--------------close MessageLog1")
             event.accept()
 
     def mouseMoveEvent(self, event):
         if event.buttons() == Qt.LeftButton:
             self.move(event.globalPos() - self.dragPosition)
+            print("--------------close MessageLog2")
             event.accept()
+    """
 
     def closeform(self):
-        self.close()
+        self.accept()
+
 
 class newcontactform(QDialog, Ui_NewContactForm):
     def __init__(self, PRAE):
@@ -2003,6 +1967,7 @@ class Example(QDialog, QWidget):
         except Exception as err :
             print("refreshMeassageData Error : "+ str(err))
 
+    #点击message的任意一行，显示详细信息
     def showMessageDetails(self):
         print("itemclick")
         try:
@@ -2011,12 +1976,36 @@ class Example(QDialog, QWidget):
             transEntityItem = self.ui.LogMessage.item(iRow, 3)
             transEntity = transEntityItem.data(0)
             messformDialog = messform(self, transEntity)
-            messformDialog.show()
+            result = messformDialog.exec_()
+            #对话框关闭之后将记录设置成黑色并保存到配置文件中
+            if result == QDialog.Accepted:
+                self.MarkOneRead(iRow)
+                
+
+
         except Exception as err :
             print("showMessageDetails Error : " + str(err) )
 
+    #点击Mark All Read 的槽函数，将所有信息标志为已读
+    def MarkAllRead(self):
+        try:
+            iCount = self.ui.LogMessage.rowCount()-1
+            for i in range(iCount):
+                self.MarkOneRead(i)
+        except Exception as err:
+            print("MarkAllRead Error : " + str(err))
 
-    ########################################################################################
+    # 标志一条信息为已读
+    def MarkOneRead(self, row):
+        #界面设置已读的message为黑色
+        self.ui.LogMessage.item(row, 0).setForeground(QBrush(QColor(0, 0, 0)))
+        self.ui.LogMessage.item(row, 1).setForeground(QBrush(QColor(0, 0, 0)))
+        self.ui.LogMessage.item(row, 2).setForeground(QBrush(QColor(0, 0, 0)))
+        self.ui.LogMessage.item(row, 3).setForeground(QBrush(QColor(0, 0, 0)))
+        #将已读的message的hash值序列化，下次打开的时候能显示上次的状态
+        
+
+   ########################################################################################
 
 
 
@@ -2774,18 +2763,6 @@ class Example(QDialog, QWidget):
             self.ui.lineEdit_16.setEchoMode(QLineEdit.Password)
             self.ui.turn2visible2_4.setIcon(QIcon(":/pic/02.png"))
             self.phrm2eye = 1
-
-    def purple2black(self):
-        print(self.ui.LogMessage.rowCount())
-        for i in range(self.ui.LogMessage.rowCount()):  # self.lastblacknum,
-            self.ui.LogMessage.item(i, 0).setForeground(
-                QBrush(QColor(0, 0, 0)))
-            self.ui.LogMessage.item(i, 1).setForeground(
-                QBrush(QColor(0, 0, 0)))
-            self.ui.LogMessage.item(i, 2).setForeground(
-                QBrush(QColor(0, 0, 0)))
-
-        self.lastblacknum = self.ui.LogMessage.rowCount()
 
     def startmining(self):
         try:
@@ -3941,6 +3918,9 @@ class Example(QDialog, QWidget):
 
     def createMessageConnection(self):
         self.ui.LogMessage.itemClicked.connect(self.showMessageDetails)
+        btnMark = self.ui.pushButton_37
+        btnMark.clicked.connect(self.MarkAllRead)
+
 
 
     
@@ -4114,9 +4094,7 @@ class Example(QDialog, QWidget):
         btn2set1 = self.ui.pushButton_31
         btn2set1.clicked.connect(lambda: self.setpswform.show_w2(self))
 
-        # Message page
-        #btnMark = self.ui.pushButton_37
-        #btnMark.clicked.connect(self.purple2black)
+
 
         # mining page
         self.mingwaform = mingwaform(self)
@@ -4314,6 +4292,7 @@ class Example(QDialog, QWidget):
 
     def init(self):
         # 由主窗口弹出的对话框先new一个实体
+
         self.setpswform = setpswform(self)
         self.publishform = publishform(self)
         self.changepswform = changepswform(self)
@@ -4329,7 +4308,7 @@ class Example(QDialog, QWidget):
         self.historyBalanceGetting = False
         self.lastBlockGetting = False
         self.waite_miningtatus = 0
-        self.lastblacknum = 0
+
         self.cpures = 2
         self.miningtatus = 0
         self.syncstatus = 0
@@ -4351,11 +4330,7 @@ class Example(QDialog, QWidget):
 
         self.getLastBlock()
 
-        # 开启walton服务器
-        if self.startWalton() == False:
-            return
-        # 连接walton服务器的端口
-        self.w3 = Web3(HTTPProvider('http://127.0.0.1:8545', request_kwargs={'timeout': 3}))
+
 
         # 加载上一次的配置信息，还需要整合以及添加一些配置文件（待做）
         self.loadConfigFile();
@@ -4379,6 +4354,13 @@ class Example(QDialog, QWidget):
 
 
         self.show()
+
+        # 开启walton服务器
+        if self.startWalton() == False:
+            return
+        # 连接walton服务器的端口
+        self.w3 = Web3(HTTPProvider('http://127.0.0.1:8545', request_kwargs={'timeout': 3}))
+
         self.createConnection()
         self.createMWConnection()
         self.createMessageConnection()
@@ -4386,14 +4368,15 @@ class Example(QDialog, QWidget):
 
 
     def loadConfigFile(self):
-        #
+
         if not os.path.isfile(pathConfig.lastSettingPath + 'test.xml'):
             ret = Core_func.generateaddressXml()
         self.praseTestFile()
+
         if not os.path.isfile(pathConfig.lastSettingPath + 'Wallets.xml'):
             ret = Core_func.generatewalletXml()
         self.praseWalletsFile()
-
+        """
         if os.path.isfile(pathConfig.lastSettingPath +'test.xml'):
             self.transdom = xml.dom.minidom.parse(pathConfig.lastSettingPath +"test.xml")
             xmlStr = self.transdom.toprettyxml(indent='', newl='', encoding='utf-8')
@@ -4417,6 +4400,7 @@ class Example(QDialog, QWidget):
             xmlStr = self.transdom.toprettyxml(indent='', newl='', encoding='utf-8')
             xmlStr = xmlStr.decode().replace('\t', '').replace('\n', '')
             self.transdom = xml.dom.minidom.parseString(xmlStr)
+        """
 
         if not os.path.isfile(pathConfig.lastSettingPath + 'setting.xml'):
             Core_func.generateSettingXml()
@@ -4763,6 +4747,7 @@ if __name__ == '__main__':
     ex.ui.pushButton_10.clicked.connect(lambda: recieveform.show_w2(ex))
     ex.ui.pushButton_36.clicked.connect(lambda: pubaddrForm.show_w2(ex))
     ex.ui.pushButton_38.clicked.connect(lambda: newcontactform.show_w2(ex))
+
     #messform = messform(ex)
     #ex.ui.LogMessage.itemClicked.connect(messform.show_w2)
     ex.ui.ContactsT.itemClicked.connect(ex.choosebtn)
