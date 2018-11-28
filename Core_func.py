@@ -225,7 +225,7 @@ def Import_mnemonic(passphrase1, passphrase2, mnemonicwords):
 def Transaction_out(private_key, toaddr, value, gas, gasprice, nonce):
     toaddr = w3.toChecksumAddress(toaddr)
     acct = Account.privateKeyToAccount(private_key)
-    public_key = acct.address
+    #public_key = acct.address
     transaction = {
         'to': toaddr,
         'value': int(Decimal(value) * (10 ** 18)),
@@ -252,23 +252,26 @@ def Transaction_out(private_key, toaddr, value, gas, gasprice, nonce):
 
     #判断如果是nonce too low的错误，则将nonce的值自动+1 再请求
     if "error" in tx_hash.keys():
-        while tx_hash["error"] == "nonce too low":
-            nonce += 1
-            transaction = {
-                'to': toaddr,
-                'value': int(Decimal(value) * (10 ** 18)),
-                'gas': int(gas),
-                'gasPrice': int(Decimal(gasprice) * (10 ** 18)),
-                'nonce': nonce,
-                'chainId': 15
-            }
-            signed = w3.eth.account.signTransaction(transaction, private_key)
-            tx_hash = requests.get(
-                "https://waltonchain.net:18950/api/sendRawTransaction/" + w3.toHex(signed.rawTransaction)).json()
-            if "error" not in tx_hash.keys():
-                return  (True,nonce,tx_hash["tx_hash"])
-        (True, nonce, tx_hash["error"])
-
+        try:
+            while tx_hash["error"] == "nonce too low":
+                nonce += 1
+                transaction = {
+                    'to': toaddr,
+                    'value': int(Decimal(value) * (10 ** 18)),
+                    'gas': int(gas),
+                    'gasPrice': int(Decimal(gasprice) * (10 ** 18)),
+                    'nonce': nonce,
+                    'chainId': 15
+                }
+                signed = w3.eth.account.signTransaction(transaction, private_key)
+                newtx_hash = requests.get(
+                    "https://waltonchain.net:18950/api/sendRawTransaction/" + w3.toHex(signed.rawTransaction)).json()
+                if "error" not in newtx_hash.keys():
+                    return (True, nonce, newtx_hash["tx_hash"])
+        except Exception as err:
+            print("re Transaction error : " + str(err))
+            return (False, nonce, str(err))
+        return (False, nonce, tx_hash["error"])
     return  (True,nonce,tx_hash["tx_hash"])
     #返回值的格式 1、返回请求成功还是失败，2、返回nonce的值（可能经过了自加加的操作），返回请求得到的结果
 
@@ -282,14 +285,7 @@ def stopCPUMining():
     pass
 
 
-def getAccountBalance(public_key):
-    try:
-        r1 = requests.get(
-            "https://waltonchain.net:18950/api/getBalance/"+public_key).json()
-        return (True, r1['Balance'])
-    except Exception as err:
-        print(err)
-        return (False, err)
+
 
 
 def getMiningRecord(public_key):
@@ -325,13 +321,7 @@ def getTokenMarket():
         return (0, err)
 
 
-def getTransactionRecord_day(public_key, interval):
-    try:
-        r1 = requests.get("https://waltonchain.net:18950/api/getHistoryBalance/"+public_key+'/'+interval).json()
-        return (True, r1['HistoryBalance'])
-    except Exception as err:
-        #print("Error ：" + str(err))
-        return (False, err)
+
 
 
     
@@ -595,7 +585,8 @@ def get_new_USD():
         return (0, err)
 
 
-#获取余额
+#获取余额暂时没用到
+"""
 def getAccountBalance(address):
     try:
         r1 = requests.get(
@@ -603,7 +594,8 @@ def getAccountBalance(address):
         return (True, r1['Balance'])
     except Exception as err:
         print("Error: " + str(err))
-        return (False, err)
+        return (False, err)    
+"""
 #获取Nonce
 def getAccountNonce(address):
     try:
@@ -638,6 +630,15 @@ def getHistoryBalance(address):
         print("getHistoryBalance Error: ")
         print(err)
         print("getHistoryBalance Error end : ")
+        return (False, err)
+
+#是要删掉的
+def getTransactionRecord_day(public_key, interval):
+    try:
+        r1 = requests.get("https://waltonchain.net:18950/api/getHistoryBalance/"+public_key+'/'+interval).json()
+        return (True, r1['HistoryBalance'])
+    except Exception as err:
+        #print("Error ：" + str(err))
         return (False, err)
 
 

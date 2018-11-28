@@ -11,57 +11,7 @@ from TransactionSendListHelper import  TransactionSendListHelper,AddressTransact
 from datetime import datetime, timedelta
 import time
 
-class initchartThread(QtCore.QThread):
-    finishSignal = QtCore.pyqtSignal(tuple,Figure_Canvas)
-    def __init__(self,dr,addr,parent=None):
-        super(initchartThread, self).__init__(parent)
-        self.dr=dr
-        self.addr = addr
-        self.interval = "20"
-
-    def run(self):
-        print("start Thread")
-        self.ret = self.test()
-        try:
-            self.finishSignal.emit(self.ret,self.dr)
-        except Exception as err:
-            print("Error : " + str(err))
-
-    def test(self):
-        if self.addr != '':
-            ret3 = self.getTransactionRecord_day()
-            if ret3[0] == 0:
-                return ('0','0')
-            self.dr.y = []
-            self.dr.x = [20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2,1]
-            try:
-                for i in range(len(ret3[1])):
-                    self.dr.y.append(float(ret3[1][i]['history_balance']))
-                self.dr.axes.plot(self.dr.x, self.dr.y, 'r-', 1)
-                self.dr.axes.set_axis_off()
-                print('jjbalance=' + str(ret3[1][0]['history_balance']))
-                self.dr.balance = ret3[1][0]['history_balance']
-                return ('1',ret3[1][0]['history_balance'])
-            except Exception as err:
-                print("Error : " + str(err))
-                return ('0', '0')
-        else:
-            self.dr.y = [0]
-            self.dr.x = [0]
-            self.dr.axes.plot(self.dr.x, self.dr.y, 'r-', 1)
-            self.dr.axes.set_axis_off()
-            return ('1','0')
-
-    def getTransactionRecord_day(self):
-        try:
-            response = requests.get("https://waltonchain.net:18950/api/getHistoryBalance/" + self.addr + '/' + self.interval ,timeout=(5,10))
-            if response.status_code == 200:
-                return (1, response.json()['HistoryBalance'])
-        except Exception:
-            return (0,0)
-
-
-
+#更新20天余额的线程
 class getHistoryBalanceThread(QtCore.QThread):
     getBalancefinishSignal = QtCore.pyqtSignal(bool)
     def __init__(self,addr, parent=None):
@@ -112,48 +62,44 @@ class getHistoryBalanceThread(QtCore.QThread):
             self.getBalancefinishSignal.emit(False)
             return
 
-
-
-
-
-
-
+#更新交易记录的线程
 class getTransactionDataThread(QtCore.QThread):
-    getTransfinishSignal = QtCore.pyqtSignal(bool,int)
+    getTransfinishSignal = QtCore.pyqtSignal(bool)
     def __init__(self,addr, parent=None):
         super(getTransactionDataThread, self).__init__(parent)
         self.address = addr
     def run(self):
         #获取余额
-        balance = 0
-        nonce = 0
+        #balance = 0
+        #nonce = 0
         try:
+            #发现请求的balance 和nonce没有什么作用，先不请求
+            """
             retBalance =Core_func.getAccountBalance(self.address)
             if retBalance[0] == False:
                 self.getTransfinishSignal.emit(False,nonce)
                 return
             balance = retBalance[1]
 
-            # 获取Nonce
             retNonce = Core_func.getAccountNonce(self.address)
             if retNonce[0] == False:
                 self.getTransfinishSignal.emit(False,nonce)
                 return
             nonce = retNonce[1]
             print("getTransactionDataThread nonce : " + str(nonce))
-
+            """
             # 获取交易记录
             retTrans = Core_func.getTransactionRecord(self.address)
             if retTrans[0] == False:
-                self.getTransfinishSignal.emit(False,nonce)
+                self.getTransfinishSignal.emit(False)
                 return
             self.time =time.strftime('%Y/%m/%d %H:%M:%S', time.localtime(time.time()))
             self.refreshLocalFileData(retTrans[1]);
-            self.getTransfinishSignal.emit(True,nonce)
+            self.getTransfinishSignal.emit(True)
             return
         except Exception as err:
             print("1Error : " +  str(err))
-            self.getTransfinishSignal.emit(False,nonce)
+            self.getTransfinishSignal.emit(False)
             return
 
     def refreshLocalFileData(self,strTrans):
@@ -176,6 +122,7 @@ class getTransactionDataThread(QtCore.QThread):
                 accountEntity = AccountTransactionsEntity()
                 # 将网络请求的交易数据额dict赋值给账户交易对象的dict（用dict初始化对象）
                 accountEntity.__dict__ = lstEntity.tx_pagination_details[i]
+                print("---------------accountEntity value : " + str(accountEntity.value))
                 # 跟新blockType的属性
                 if lastBlock - accountEntity.blockNumber >= 11:
                     accountEntity.blockType = ApplicationHelper.transSuccess
@@ -201,8 +148,6 @@ class getTransactionDataThread(QtCore.QThread):
                 accountSendEntity = addressTransSendList.TransactionSendList[i]
                 bhas = False
                 if accountSendEntity.blockType != ApplicationHelper.transSuccess:
-                    print("---------------accountSendEntity value : "+ accountSendEntity.value)
-                    print("---------------accountSendEntity blockType : " + accountSendEntity.blockType)
                     for i in range(len(addressEntity.AccountTransactionsEntityList)):
                         accountEntity = addressEntity.AccountTransactionsEntityList[i]
                         # 判断send的交易信息是否已经在请求到的list中存在(用hash值判断)，如果已经存在则transSend里面的交易类型就改为Success，否则暂不处理
@@ -222,9 +167,18 @@ class getTransactionDataThread(QtCore.QThread):
             #self.getTransfinishSignal.emit(False)
             return
 
+#更新市场信息的线程
+class getMarketDataThread(QtCore.QThread):
+    getMarketfinishSignal = QtCore.pyqtSignal(bool,tuple)
+
+    def __init__(self,parent=None):
+        super(getMarketDataThread, self).__init__(parent)
+
+    def run(self):
+        pass
 
 
-
+#获取最新block的信息
 class getLastBlockThread(QtCore.QThread):
     getLastBlockfinishSignal = QtCore.pyqtSignal(tuple)
     def __init__(self, parent=None):
@@ -233,6 +187,9 @@ class getLastBlockThread(QtCore.QThread):
     def run(self):
         lastBlockRet = Core_func.getLatestBlock()
         self.getLastBlockfinishSignal.emit(lastBlockRet)
+
+
+
 
 
 

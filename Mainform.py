@@ -553,6 +553,7 @@ class enterpswform(QDialog, Ui_EnterPswForm):
         self.move(screen.left() + (screen.width() - size.width()) / 2,
                   screen.top() + (screen.height() - size.height()) / 2)
         self.exec_()
+
     def seepsw(self):
         if self.passwordeye == 1:
             self.ui.lineEdit_6.setEchoMode(0)
@@ -610,24 +611,9 @@ class enterpswform(QDialog, Ui_EnterPswForm):
                     TransactionSend.tx_hash = tx_hash
                     tslHelper = TransactionSendListHelper()
                     tslHelper.add(ex.m_wallet.address,TransactionSend)
+                    ex.refreshMWLocalData()
                 except Exception as err:
                     print("add tslHelper Error : "+ str(err))
-
-
-
-                '''
-                Core_func.addtranslistxml(ex.transdom, ex.transroot, addr, time.strftime('%Y-%m-%d', time.localtime(time.time())), addr, 'none',
-                                          ex.Trans.toaddr, ex.Trans.Gasprice, ' ', ' ', ret[1],
-                                          ex.Trans.Gas, ex.Trans.value, datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
-                                          'Send', 'Submitted')
-
-                Core_func.addtranslistxml(ex.transdom, ex.transroot, ex.Trans.toaddr, time.strftime('%Y-%m-%d', time.localtime(time.time())), addr, 'none',
-                                          ex.Trans.toaddr, ex.Trans.Gasprice, ' ', ' ', ret[1],
-                                          ex.Trans.Gas, ex.Trans.value, datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
-                                          'Recieve', 'Submitted')
-                '''
-                # self.closeform()
-                # self.publishform.show_w2('transaction successfully',self)
 
                 ex.Trans.value = ''
                 ex.Trans.Type = ''
@@ -700,34 +686,6 @@ class Figure_Canvas(FigureCanvas):
             self.axes.plot(x, y,'r-',1)
             self.axes.set_axis_off()
             return today_USD
-
-    def testB(self,addr):
-        if addr != '':
-            try:
-                ret3 = Core_func.getTransactionRecord_day(addr, '20')
-            except Exception as err:
-                self.y = [0]
-                self.x = [0]
-                self.axes.plot(self.x, self.y, 'r-', 1)
-                self.axes.set_axis_off()
-                return 0
-            y = []
-            x = [20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2,
-                 1]
-            for i in range(len(ret3[1])):
-                y.append(float(ret3[1][i]['history_balance']))
-            y.append(0)
-            self.axes.plot(x, y, 'r-', 1)
-            self.axes.set_axis_off()
-            return  ret3[1][i]['history_balance']
-            # ret3[1][i]['history_balance']
-        else:
-            y = [0]
-            x = [0]
-            self.axes.plot(x, y, 'r-', 1)
-            self.axes.set_axis_off()
-            return  0
-        
 
     def testR(self,addr):
         if addr != '':
@@ -1220,9 +1178,19 @@ class messform(QDialog, Ui_MessForm):
         self.ui.textEdit.setText(entity.tx_hash)
         #self.exec_()
 
+    #mousePressEvent mouseMoveEvent 主要是对于无边框的对话框进行拖拽的实现
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.dragPosition = event.globalPos() - self.frameGeometry().topLeft()
+            QApplication.postEvent(self, Core_func.QEvent(174))
+            event.accept()
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.LeftButton:
+            self.move(event.globalPos() - self.dragPosition)
+            event.accept()
+
     def closeform(self):
         self.accept()
-
 
 class newcontactform(QDialog, Ui_NewContactForm):
     def __init__(self, PRAE):
@@ -1337,7 +1305,6 @@ class newcontactform(QDialog, Ui_NewContactForm):
 
     def closeform(self):
         self.close()
-
 
 class pubaddrForm(QDialog, Ui_PubAddrForm):
     def __init__(self, PRAE):
@@ -1887,7 +1854,7 @@ class Example(QDialog, QWidget):
 
     # 联网刷新交易信息
     def getMWTransactionListData(self):
-        #如果当前最新块号没有获取到则再次获取最新块号，只有有了最新块号才能请求到交易是否成功
+        #如果当前最新块号没有获取到则再次获取最新块号，只有有了最新块号才能根据请求到的交易信息的块号计算出是否已经确认12个块了已经当前块确认的进度
         if ApplicationHelper.lastBlock == 0 :
             #进行最新块号的获取，并返回
             return
@@ -1900,9 +1867,8 @@ class Example(QDialog, QWidget):
             self.getTransactionDataThread.start()
 
     #获取交易信息的线程结束信号的槽函数
-    def resetTransactionThreadFlag(self, result,nonce):
+    def resetTransactionThreadFlag(self, result):
         if result == True:
-            #self.m_wallet.nonce = nonce
             self.showTransactions()
         self.transactionListGetting = False
 
@@ -4114,6 +4080,7 @@ class Example(QDialog, QWidget):
         btnstam.clicked.connect(self.tostack)
         btnacc = self.ui.pushButton_29
         btnacc.clicked.connect(lambda: self.mingwaform.show_w2(self))
+        #lineEdit_7是挖矿的地址
         self.ui.lineEdit_7.textChanged.connect(self.refreshmininfo)
 
         self.ui.radioButton_4.clicked.connect(self.changereg)
@@ -4353,13 +4320,13 @@ class Example(QDialog, QWidget):
         self.initcontact()
         print("time8 = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         #初始化挖矿结果，应该显示上一次挖矿账号30天内的挖矿结果
-        self.initMingres()
+        #self.initMingres()
         print("time9 = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         #显示当前挖矿账户的挖矿记录
         #self.initmining()
         print("time10 = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         #显示30天内的市场信息
-        #self.initMarket()
+        self.initMarket()
         print("time11 = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         #初始化世界地图那张
         #self.initmap()
