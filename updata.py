@@ -169,14 +169,26 @@ class getTransactionDataThread(QtCore.QThread):
 
 #更新市场信息的线程
 class getMarketDataThread(QtCore.QThread):
-    getMarketfinishSignal = QtCore.pyqtSignal(bool,tuple)
+    #返回4个信息 ：x轴的信息，y轴的信息，起止日期，usd的值，通过信号传递给界面，界面绘制出来
+    getMarketSignalShowChart = QtCore.pyqtSignal(bool,tuple,tuple,tuple,float)
+    #tuple里面嵌套四个信息：Highest，lowest，closing，Opening值，通过信号传递出去显示在界面
+    getMarketSignalShowText  = QtCore.pyqtSignal(bool,tuple)
+    #线程出现异常或者正常结束的信号，通过传递出去的值重置线程标志位
+    getMarketfinishSignal = QtCore.pyqtSignal(bool)
+
 
     def __init__(self,parent=None):
         super(getMarketDataThread, self).__init__(parent)
 
     def run(self):
-        pass
-
+        try:
+            Core_func.getTokenMarket()
+        except Exception as err:
+            self.getMarketfinishSignal.emit(False)
+        try:
+            Core_func.get_new_USD()
+        except Exception as err:
+            self.getMarketfinishSignal.emit(False)
 
 #获取最新block的信息
 class getLastBlockThread(QtCore.QThread):
