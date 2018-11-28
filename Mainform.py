@@ -1213,6 +1213,8 @@ class messform(QDialog, Ui_MessForm):
                   screen.top() + (screen.height() - size.height()) / 2)
         self.exec_()
 
+
+
     def show_w2(self, QTableWidgetItem):
         QTableWidgetItem.setForeground(QBrush(QColor(0, 0, 0)))
         row = Core_func.QTableWidget.indexFromItem(
@@ -1225,8 +1227,10 @@ class messform(QDialog, Ui_MessForm):
         # if ret[0] == 1:
         #     ret[1][row]
 
-        ind = Core_func.QTableWidget.indexFromItem(ex.ui.LogMessage, ex.ui.LogMessage.item(row, 2))
-        indtime = Core_func.QTableWidget.indexFromItem(ex.ui.LogMessage, ex.ui.LogMessage.item(row, 1))
+        ind = Core_func.QTableWidget.indexFromItem(
+            ex.ui.LogMessage, ex.ui.LogMessage.item(row, 2))
+        indtime = Core_func.QTableWidget.indexFromItem(
+            ex.ui.LogMessage, ex.ui.LogMessage.item(row, 1))
         print(ind.data())
         print(ind.data().split('tx_hash')[1][1:])
         try:
@@ -1840,15 +1844,16 @@ class Example(QDialog, QWidget):
             print("Error : " + str(err))
     #结合 transSendList和 transList 得到所有要显示的交易记录
     def getAllTransactions(self):
+        # 有交易则 刷新交易记录上方 updata的时间
         transList = []
         #在translist中找到当前要显示的钱包地址的所有交易记录
         tHelper = TransactionList()
         addressEntity = tHelper.find(self.m_wallet.address)
+        self.ui.lineEdit_31.setText(addressEntity.UpdateTime)
         #addressEntity 的length为0代表重来没有过交易信息，更不可能有转出信息（新创建的账户是没有钱的）
         if len(addressEntity.AccountTransactionsEntityList)==0:
             return  (False,transList)
-        #有交易则 刷新交易记录上方 updata的时间
-        self.ui.lineEdit_31.setText(addressEntity.UpdateTime)
+        
         #将所有交易都放入列表中
         for i in range(len(addressEntity.AccountTransactionsEntityList)):
             transList.append(addressEntity.AccountTransactionsEntityList[i])
@@ -1869,21 +1874,13 @@ class Example(QDialog, QWidget):
         return (True,transList)
     #ui刷新交易记录
     def showTransactions(self):
-        '''
-        #在配置文件中找到该钱包对象，找不到直接返回，否则进行数据额刷新
-        tHelper = TransactionList()
-        addressEntity = tHelper.find(self.m_wallet.address)
-        if addressEntity.Address == "":
-            self.ui.TransactionHistory.clear()
-            self.ui.TransactionHistory.setRowCount(0)
-            return
-        #刷新交易记录上方 updata的时间
-        self.ui.lineEdit_31.setText(addressEntity.UpdateTime)
-        '''
-
+        #清空
+        self.ui.TransactionHistory.clear()
         #获取到所有交易记录
         result = self.getAllTransactions()
         if result[0] == False:
+            self.ui.TransactionHistory.setRowCount(0)
+            self.resetTraHisrefreshBtn()
             return
 
         allTransList = result[1]
@@ -1893,11 +1890,10 @@ class Example(QDialog, QWidget):
         iCount = len(allTransList)
         #当前该地址没有数据则清空记录返回
         if iCount < 1:
-            self.ui.TransactionHistory.clear()
             self.ui.TransactionHistory.setRowCount(0)
+            self.resetTraHisrefreshBtn()
             return
-        #清空并设置新的行数
-        self.ui.TransactionHistory.clear()
+        #设置新的行数
         self.ui.TransactionHistory.setRowCount(iCount+1)
 
         for i in range(iCount):
@@ -1996,7 +1992,7 @@ class Example(QDialog, QWidget):
                     accountTransEntity.value)
                 print(str(i) + " = " + strContent)
                 entityItem = QTableWidgetItem()
-                entityItem.setData(i, accountTransEntity)
+                entityItem.setData(0, accountTransEntity)
                 self.ui.LogMessage.setItem(i, 0, QTableWidgetItem(accountTransEntity.transType))
                 self.ui.LogMessage.setItem(i, 1, QTableWidgetItem(accountTransEntity.utc_timestamp))
                 self.ui.LogMessage.setItem(i, 2, QTableWidgetItem(strContent))
@@ -2013,7 +2009,7 @@ class Example(QDialog, QWidget):
             currentItem = self.ui.LogMessage.currentItem()
             iRow = currentItem.row()
             transEntityItem = self.ui.LogMessage.item(iRow, 3)
-            transEntity = transEntityItem.data(iRow)
+            transEntity = transEntityItem.data(0)
             messformDialog = messform(self, transEntity)
             messformDialog.show()
         except Exception as err :
@@ -3437,31 +3433,31 @@ class Example(QDialog, QWidget):
         else:
             self.ui.toolButton_25.setText(' Completed')
             self.ui.toolButton_25.setStyleSheet(
-                'color: #aa00ff;border:0px;')
+                'color: #8700ff;border:0px;')
             self.ui.toolButton_25.setIcon(QIcon(":/pic/puperqukuai.png"))
             self.ui.toolButton_21.setText(' Completed')
             self.ui.toolButton_21.setStyleSheet(
-                'color: #aa00ff;border:0px;')
+                'color: #8700ff;border:0px;')
             self.ui.toolButton_21.setIcon(QIcon(":/pic/puperqukuai.png"))
             self.ui.toolButton_28.setText(' Completed')
             self.ui.toolButton_28.setStyleSheet(
-                'color: #aa00ff;border:0px;')
+                'color: #8700ff;border:0px;')
             self.ui.toolButton_28.setIcon(QIcon(":/pic/puperqukuai.png"))
             self.ui.toolButton_31.setText(' Completed')
             self.ui.toolButton_31.setStyleSheet(
-                'color: #aa00ff;border:0px;')
+                'color: #8700ff;border:0px;')
             self.ui.toolButton_31.setIcon(QIcon(":/pic/puperqukuai.png"))
             self.ui.toolButton_34.setText(' Completed')
             self.ui.toolButton_34.setStyleSheet(
-                'color: #aa00ff;border:0px;')
+                'color: #8700ff;border:0px;')
             self.ui.toolButton_34.setIcon(QIcon(":/pic/puperqukuai.png"))
             self.ui.toolButton_37.setText(' Completed')
             self.ui.toolButton_37.setStyleSheet(
-                'color: #aa00ff;border:0px;')
+                'color: #8700ff;border:0px;')
             self.ui.toolButton_37.setIcon(QIcon(":/pic/puperqukuai.png"))
             self.ui.toolButton_39.setText(' Completed')
             self.ui.toolButton_39.setStyleSheet(
-                'color: #aa00ff;border:0px;')
+                'color: #8700ff;border:0px;')
             self.ui.toolButton_39.setIcon(QIcon(":/pic/puperqukuai.png"))
         if self.miningtatus == 0:
             self.ui.lineEdit_11.setText('0')
@@ -3497,31 +3493,31 @@ class Example(QDialog, QWidget):
             self.ui.lineEdit_11.setText(str(self.w3.eth.hashrate))
             self.ui.toolButton_26.setText(' Mining')
             self.ui.toolButton_26.setStyleSheet(
-                'color: #aa00ff;border:0px;')
+                'color: #8700ff;border:0px;')
             self.ui.toolButton_26.setIcon(QIcon(":/pic/mining1.png"))
             self.ui.toolButton_29.setText(' Mining')
             self.ui.toolButton_29.setStyleSheet(
-                'color: #aa00ff;border:0px;')
+                'color: #8700ff;border:0px;')
             self.ui.toolButton_29.setIcon(QIcon(":/pic/mining1.png"))
             self.ui.toolButton_22.setText(' Mining')
             self.ui.toolButton_22.setStyleSheet(
-                'color: #aa00ff;border:0px;')
+                'color: #8700ff;border:0px;')
             self.ui.toolButton_22.setIcon(QIcon(":/pic/mining1.png"))
             self.ui.toolButton_32.setText(' Mining')
             self.ui.toolButton_32.setStyleSheet(
-                'color: #aa00ff;border:0px;')
+                'color: #8700ff;border:0px;')
             self.ui.toolButton_32.setIcon(QIcon(":/pic/mining1.png"))
             self.ui.toolButton_35.setText(' Mining')
             self.ui.toolButton_35.setStyleSheet(
-                'color: #aa00ff;border:0px;')
+                'color: #8700ff;border:0px;')
             self.ui.toolButton_35.setIcon(QIcon(":/pic/mining1.png"))
             self.ui.toolButton_38.setText(' Mining')
             self.ui.toolButton_38.setStyleSheet(
-                'color: #aa00ff;border:0px;')
+                'color: #8700ff;border:0px;')
             self.ui.toolButton_38.setIcon(QIcon(":/pic/mining1.png"))
             self.ui.toolButton_41.setText(' Mining')
             self.ui.toolButton_41.setStyleSheet(
-                'color: #aa00ff;border:0px;')
+                'color: #8700ff;border:0px;')
             self.ui.toolButton_41.setIcon(QIcon(":/pic/mining1.png"))
         if self.peers == 0:
             self.ui.toolButton_24.setText(' Peers Connected:0')
@@ -3556,37 +3552,37 @@ class Example(QDialog, QWidget):
             self.ui.toolButton_24.setText(
                 ' Peers Connected:' + str(self.peers))
             self.ui.toolButton_24.setStyleSheet(
-                'color: #aa00ff;border:0px;')
+                'color: #8700ff;border:0px;')
             self.ui.toolButton_24.setIcon(QIcon(":/pic/tubiao1.png"))
             self.ui.toolButton_23.setText(
                 ' Peers Connected:' + str(self.peers))
             self.ui.toolButton_23.setStyleSheet(
-                'color: #aa00ff;border:0px;')
+                'color: #8700ff;border:0px;')
             self.ui.toolButton_23.setIcon(QIcon(":/pic/tubiao1.png"))
             self.ui.toolButton_27.setText(
                 ' Peers Connected:' + str(self.peers))
             self.ui.toolButton_27.setStyleSheet(
-                'color: #aa00ff;border:0px;')
+                'color: #8700ff;border:0px;')
             self.ui.toolButton_27.setIcon(QIcon(":/pic/tubiao1.png"))
             self.ui.toolButton_33.setText(
                 ' Peers Connected:' + str(self.peers))
             self.ui.toolButton_33.setStyleSheet(
-                'color: #aa00ff;border:0px;')
+                'color: #8700ff;border:0px;')
             self.ui.toolButton_33.setIcon(QIcon(":/pic/tubiao1.png"))
             self.ui.toolButton_36.setText(
                 ' Peers Connected:' + str(self.peers))
             self.ui.toolButton_36.setStyleSheet(
-                'color: #aa00ff;border:0px;')
+                'color: #8700ff;border:0px;')
             self.ui.toolButton_36.setIcon(QIcon(":/pic/tubiao1.png"))
             self.ui.toolButton_30.setText(
                 ' Peers Connected:' + str(self.peers))
             self.ui.toolButton_30.setStyleSheet(
-                'color: #aa00ff;border:0px;')
+                'color: #8700ff;border:0px;')
             self.ui.toolButton_30.setIcon(QIcon(":/pic/tubiao1.png"))
             self.ui.toolButton_40.setText(
                 ' Peers Connected:' + str(self.peers))
             self.ui.toolButton_40.setStyleSheet(
-                'color: #aa00ff;border:0px;')
+                'color: #8700ff;border:0px;')
             self.ui.toolButton_40.setIcon(QIcon(":/pic/tubiao1.png"))
 
     def initchart(self):
@@ -4192,7 +4188,7 @@ class Example(QDialog, QWidget):
         self.ui.cw.setIcon(QIcon(":/pic/cw1.png"))
         self.setToolBoxVisible(False)
 
-        self.ui.LogMessage.setStyleSheet("color:#aa00ff;border:0px;background-color: rgb(255, 255, 255);")
+        self.ui.LogMessage.setStyleSheet("color:#8700ff;border:0px;background-color: rgb(255, 255, 255);")
         self.ui.LogMessage.setSelectionBehavior(Core_func.QTableWidget.SelectRows)
         self.ui.LogMessage.horizontalHeader().setVisible(0)
         self.ui.LogMessage.verticalHeader().setVisible(0)
