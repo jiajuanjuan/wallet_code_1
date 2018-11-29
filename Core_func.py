@@ -10,7 +10,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from web3.auto import w3
-import datetime
+from datetime import datetime
 # import commands
 import subprocess
 import eth_utils
@@ -315,10 +315,10 @@ def getTokenMarket():
     try:
         r1 = requests.get(
             "https://waltonchain.net:18950/api/getMarket/WTC/30").json()
-        return (1, r1['token_market'])
+        return (True, r1['token_market'])
     except Exception as err:
-        print(err)
-        return (0, err)
+        print("getTokenMarket Error : "+ str(err))
+        return (False, str(err))
 
 
 
@@ -377,8 +377,8 @@ def getHashRate():
 
 def utc2local(utc_st):
     now_stamp = time.time()
-    local_time = datetime.datetime.fromtimestamp(now_stamp)
-    utc_time = datetime.datetime.utcfromtimestamp(now_stamp)
+    local_time = datetime.fromtimestamp(now_stamp)
+    utc_time = datetime.utcfromtimestamp(now_stamp)
     offset = local_time - utc_time
     local_st = utc_st + offset
     return local_st
@@ -578,11 +578,11 @@ def get_new_USD():
         for i in range(len(r1)):
             if r1[i]['id'] == 'waltonchain':
                 new_USD = r1[i]['price_usd']
-                return new_USD
-        return 0
+                return (True,new_USD)
+        return (False,0)
     except Exception as err:
-        print(err)
-        return (0, err)
+        print("get_new_USD Error : "+ str(err))
+        return (False, 0)
 
 
 #获取余额暂时没用到

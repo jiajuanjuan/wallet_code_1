@@ -3163,7 +3163,7 @@ QLineEdit[echoMode=&quot;2&quot;] {
 </string>
          </property>
          <property name="text">
-          <string>Current: 5.00000 WTCT</string>
+          <string>Current: 0.00000 WTCT</string>
          </property>
          <property name="frame">
           <bool>false</bool>
@@ -3216,7 +3216,7 @@ QLineEdit[echoMode=&quot;2&quot;] {
 </string>
          </property>
          <property name="text">
-          <string>2018-05-05</string>
+          <string/>
          </property>
          <property name="frame">
           <bool>false</bool>
@@ -3269,7 +3269,7 @@ QLineEdit[echoMode=&quot;2&quot;] {
 </string>
          </property>
          <property name="text">
-          <string>2018-05-25</string>
+          <string/>
          </property>
          <property name="frame">
           <bool>false</bool>
@@ -3659,7 +3659,7 @@ QLineEdit[echoMode=&quot;2&quot;] {
 </string>
          </property>
          <property name="text">
-          <string>2018-05-05</string>
+          <string/>
          </property>
          <property name="frame">
           <bool>false</bool>
@@ -3712,7 +3712,7 @@ QLineEdit[echoMode=&quot;2&quot;] {
 </string>
          </property>
          <property name="text">
-          <string>8.6479 USD</string>
+          <string/>
          </property>
          <property name="frame">
           <bool>false</bool>
@@ -3765,7 +3765,7 @@ QLineEdit[echoMode=&quot;2&quot;] {
 </string>
          </property>
          <property name="text">
-          <string>2018-05-25</string>
+          <string/>
          </property>
          <property name="frame">
           <bool>false</bool>
@@ -5131,7 +5131,7 @@ QLineEdit[echoMode=&quot;2&quot;] {
 </string>
      </property>
      <property name="text">
-      <string>2018-05-05</string>
+      <string/>
      </property>
      <property name="frame">
       <bool>false</bool>
@@ -5184,7 +5184,7 @@ QLineEdit[echoMode=&quot;2&quot;] {
 </string>
      </property>
      <property name="text">
-      <string>2018-05-25</string>
+      <string/>
      </property>
      <property name="frame">
       <bool>false</bool>
@@ -5237,7 +5237,7 @@ QLineEdit[echoMode=&quot;2&quot;] {
 </string>
      </property>
      <property name="text">
-      <string>2018-05-05</string>
+      <string/>
      </property>
      <property name="frame">
       <bool>false</bool>
@@ -5290,7 +5290,7 @@ QLineEdit[echoMode=&quot;2&quot;] {
 </string>
      </property>
      <property name="text">
-      <string>2018-05-25</string>
+      <string/>
      </property>
      <property name="frame">
       <bool>false</bool>
