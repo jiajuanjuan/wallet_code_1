@@ -662,8 +662,7 @@ class Figure_Canvas(FigureCanvas):
         self.balance = 0
         self.axes = fig.add_subplot(111)
 
-
-
+    """
     def testR(self,addr):
         if addr != '':
             try:
@@ -741,7 +740,7 @@ class Figure_Canvas(FigureCanvas):
             self.axes.plot(x, y, 'r-', 1)
             self.axes.set_axis_off()
             return 0
-
+    """
 class conInfoform(QDialog, Ui_ConInfoForm):
     def __init__(self, PRAE):
         super().__init__()
@@ -1515,7 +1514,7 @@ class sendform(QDialog, Ui_SendForm):
                           screen.top() + (screen.height() - size.height()) / 2)
                 self.exec_()
             except Exception as err:
-                ex.refreshTop()
+                #ex.refreshTop()
                 print('without network send1')
                 self.ui.lineEdit_7.clear()
                 self.ui.lineEdit_6.clear()
@@ -1553,7 +1552,7 @@ class sendform(QDialog, Ui_SendForm):
                 self.exec_()
         except Exception as err:
             # ex.syncstatus = 0
-            ex.refreshTop()
+            #ex.refreshTop()
             self.ui.lineEdit_7.clear()
             self.ui.lineEdit_6.clear()
             # self.close()
@@ -2130,12 +2129,12 @@ class Example(QDialog, QWidget):
         self.setToolBoxNoHeighlight()
         self.ui.contact.setIcon(QIcon(":/pic/contact1.png"))
         self.ui.stackedWidget.setCurrentIndex(4)
-
+    """
     def pressbtn5(self):
         self.setToolBoxNoHeighlight()
         self.ui.mining.setIcon(QIcon(":/pic/mining1.png"))
         self.ui.stackedWidget.setCurrentIndex(5)
-
+    """
     def pressbtn6(self):
         self.setToolBoxNoHeighlight()
         self.ui.mw.setIcon(QIcon(":/pic/mw1.png"))
@@ -2709,6 +2708,7 @@ class Example(QDialog, QWidget):
             self.ui.turn2visible2_4.setIcon(QIcon(":/pic/02.png"))
             self.phrm2eye = 1
 
+    """
     def startmining(self):
         try:
             if self.startstop == 1:
@@ -2719,7 +2719,7 @@ class Example(QDialog, QWidget):
                 else:
                     self.startstop = 0
                     self.miningtatus = 1
-                    self.refreshTop()
+                    #self.refreshTop()
                     self.ui.pushButton_30.setStyleSheet("border-width: 1px;"
                                                         "border-color: rgb(135, 0, 255);"
                                                         "background-color: rgb(135, 0, 255);"
@@ -2768,7 +2768,7 @@ class Example(QDialog, QWidget):
                 self.startstop = 1
                 self.miningtatus = 0
                 self.w3.miner.stop()
-                self.refreshTop()
+                #self.refreshTop()
                 self.ui.lineEdit_11.setText('0')
                 ######################################
 
@@ -2792,7 +2792,7 @@ class Example(QDialog, QWidget):
                 self.ui.horizontalSlider.setEnabled(1)
         except Exception as err:
             self.publishform.show_w2(str(err), self)
-
+    """
     def changecpu(self):
         self.ui.radioButton_3.setEnabled(1)
         self.ui.radioButton_4.setEnabled(1)
@@ -2859,6 +2859,7 @@ class Example(QDialog, QWidget):
                 self.ui.radioButton_5.setChecked(True)
 
     def refreshTop(self):
+        return
         try:
             self.peers = len(self.w3.admin.peers)
             if self.peers == 0:
@@ -2902,12 +2903,14 @@ class Example(QDialog, QWidget):
             self.UpdateTopGUI()
             subprocess.Popen('walton.exe', shell=True)
 
+    #statistics 页面里面的挖矿记录
+    """
     def initMingres(self):
         try:
             if len(self.ui.lineEdit_7.text().strip())== 42 and self.ui.lineEdit_7.text().strip()[0:2]=='0x':
                 drR = Figure_Canvas()
                 ret4 = drR.testR(self.ui.lineEdit_7.text().strip())
-                graphicsceneR = QtWidgets.QGraphicsScene()
+                graphicsceneR = QGraphicsScene()
                 graphicsceneR.addWidget(drR)
                 self.ui.graphicsView_6.setScene(graphicsceneR)
                 self.ui.graphicsView_6.show()
@@ -2940,7 +2943,8 @@ class Example(QDialog, QWidget):
             # self.syncstatus = 0
             # self.peers = 0
             self.refreshTop()
-
+    """
+    """
     def UpdateTopGUI(self):
         if self.syncstatus == 0:
             self.ui.toolButton_25.setText(' Syncing')
@@ -3125,8 +3129,8 @@ class Example(QDialog, QWidget):
             self.ui.toolButton_40.setStyleSheet(
                 'color: #8700ff;border:0px;')
             self.ui.toolButton_40.setIcon(QIcon(":/pic/tubiao1.png"))
-
-
+    """
+    """
     def initmining(self):
         try:
             if len(self.ui.lineEdit_7.text().strip())== 42 and self.ui.lineEdit_7.text().strip()[0:2]=='0x':
@@ -3151,9 +3155,10 @@ class Example(QDialog, QWidget):
             elif len(self.ui.lineEdit_7.text().strip())!= 0:
                 self.publishform.show_w2('invalid address',self)
         except Exception as err:
-            self.refreshTop()
+        #self.refreshTop()
         self.ui.lineEdit_32.setText(time.strftime('%Y/%m/%d %H:%M:%S', time.localtime(time.time())))
-
+    """
+    #刷新contacts页面
     def initcontact(self):
         try:
             if os.path.isfile(pathConfig.lastSettingPath +'test.xml'):
@@ -3248,6 +3253,7 @@ class Example(QDialog, QWidget):
             sou = json.dumps(source[1]).strip('}')
             rce = sou.split(',')
         except Exception as err:
+            print("initmap getCurrentNodesDistribution Error : " + str(err) )
             return 1    
         graphicsceneCR = QtWidgets.QGraphicsScene()
         nodemax = 0
@@ -3372,17 +3378,18 @@ class Example(QDialog, QWidget):
 
         f.close()
 
-        self.kill_by_name('walton')
+        #self.kill_by_name('walton')
         #delete private.png
         if (os.path.exists(pathConfig.keystoresPath + "private.png")):
             os.remove(pathConfig.keystoresPath + "private.png")
         event.accept()
 
+    """
     def kill_by_name(self, name):
-
         cmd = 'killall walton'
         os.system(cmd)
-
+    """
+    """
     def refreshmininfo(self):
         try:
             if len(self.ui.lineEdit_7.text().strip()) == 42 and self.ui.lineEdit_7.text().strip()[0:2] == '0x':
@@ -3425,7 +3432,8 @@ class Example(QDialog, QWidget):
             subprocess.Popen('walton.exe', shell=True)
             #os.chdir('..')
             print('j2 once walton')
-
+    """
+    """
     def startWalton(self):
         #先判断要打开的walton程序是否存在，存在则打开， 不存在则报错返回且程序退出
         if not os.path.isfile ('./walton.exe'):
@@ -3438,7 +3446,7 @@ class Example(QDialog, QWidget):
             time.sleep(3)
             result2 = subprocess.Popen('walton.exe', shell=True)
         return  True
-
+    """
     def btntraHisrefreshClick(self):
         #开启钱包页面刷新按钮的定时器
         self.traHisrefreshTimer.start(10000)  #
@@ -3492,10 +3500,11 @@ class Example(QDialog, QWidget):
         self.LastBlockTimer.timeout.connect(self.getLastBlock)  #
         self.LastBlockTimer.start(30000)  #
 
-
+        """
         self.timertop = QTimer(self)  #
         self.timertop.timeout.connect(self.refreshTop)  #
         self.timertop.start(30000)  #
+        """
 
         '''
         self.timerchart = QTimer(self)  #
@@ -3529,8 +3538,10 @@ class Example(QDialog, QWidget):
         self.timermap.timeout.connect(self.initMingres)  #
         self.timermap.start(900000)  # 15min
         '''
+        """
         btnminHisrefresh = self.ui.pushButton_45
         btnminHisrefresh.clicked.connect(self.initmining)
+        """
 
         # Page of Create Wallet
         btncnw = self.ui.creat_new_wallet
@@ -3602,8 +3613,10 @@ class Example(QDialog, QWidget):
         btn3.clicked.connect(self.pressbtn3)
         btn4 = self.ui.contact
         btn4.clicked.connect(self.pressbtn4)
+        """
         btn5 = self.ui.mining
         btn5.clicked.connect(self.pressbtn5)
+        """
         btn6 = self.ui.mw
         btn6.clicked.connect(self.pressbtn6)
         btn0 = self.ui.cw
@@ -3655,10 +3668,10 @@ class Example(QDialog, QWidget):
         btn2set1 = self.ui.pushButton_31
         btn2set1.clicked.connect(lambda: self.setpswform.show_w2(self))
 
-
-
-        # mining page
-        self.mingwaform = mingwaform(self)
+        """
+        # mining page 先隐藏
+        #from dialog.DialogMingwaform import mingwaform
+        #self.mingwaform = mingwaform(self)
         btnrebm = self.ui.pushButton_12
         btnrebm.clicked.connect(self.toreddit)
         btntwim = self.ui.pushButton_13
@@ -3690,6 +3703,8 @@ class Example(QDialog, QWidget):
         btnmining = self.ui.pushButton_30
 
         btnmining.clicked.connect(self.startmining)
+        """
+
 
         # statistics page
         btnrebs = self.ui.pushButton_17
@@ -3713,9 +3728,44 @@ class Example(QDialog, QWidget):
         self.ui.statistic.setIcon(QIcon(":/pic/statistics0.png"))
         self.ui.message.setIcon(QIcon(':/pic/message0.png'))
         self.ui.contact.setIcon(QIcon(":/pic/contact0.png"))
-        self.ui.mining.setIcon(QIcon(":/pic/mining0.png"))
+        #暂时隐藏挖矿
+        #self.ui.mining.setIcon(QIcon(":/pic/mining0.png"))
         self.ui.mw.setIcon(QIcon(":/pic/mw0.png"))
         self.ui.cw.setIcon(QIcon(":/pic/cw0.png"))
+
+    #设置挖矿相关的不可用
+    def setMineNotVisible(self):
+        self.ui.mining.setVisible(False)
+        #同步的按钮不可见
+        self.ui.toolButton_25.setVisible(False)
+        self.ui.toolButton_21.setVisible(False)
+        self.ui.toolButton_28.setVisible(False)
+        self.ui.toolButton_37.setVisible(False)
+        self.ui.toolButton_39.setVisible(False)
+        self.ui.toolButton_31.setVisible(False)
+        self.ui.toolButton_34.setVisible(False)
+        #挖矿的按钮不可见
+        self.ui.toolButton_26.setVisible(False)
+        self.ui.toolButton_22.setVisible(False)
+        self.ui.toolButton_29.setVisible(False)
+        self.ui.toolButton_32.setVisible(False)
+        self.ui.toolButton_35.setVisible(False)
+        self.ui.toolButton_38.setVisible(False)
+        self.ui.toolButton_41.setVisible(False)
+        #peers的节点不可见
+        self.ui.toolButton_24.setVisible(False)
+        self.ui.toolButton_23.setVisible(False)
+        self.ui.toolButton_27.setVisible(False)
+        self.ui.toolButton_30.setVisible(False)
+        self.ui.toolButton_36.setVisible(False)
+        self.ui.toolButton_33.setVisible(False)
+        self.ui.toolButton_40.setVisible(False)
+        #隐藏 挖矿的页面
+        #self.ui.stackedWidget.removeWidget(self.ui.p4)
+
+
+
+
 
     def initUI(self):
         print("time1 = "+ datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
@@ -3855,6 +3905,8 @@ class Example(QDialog, QWidget):
 
 
     def init(self):
+  		# 挖矿相关的先设置不可用
+        self.setMineNotVisible()
         # 由主窗口弹出的对话框先new一个实体
 
         self.setpswform = setpswform(self)
@@ -3920,6 +3972,7 @@ class Example(QDialog, QWidget):
         print("time12 = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         
         print("time show = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        """
         # 开启walton服务器
         if self.startWalton() == False:
             return
@@ -3927,7 +3980,7 @@ class Example(QDialog, QWidget):
         from web3 import Web3
         from web3 import HTTPProvider
         self.w3 = Web3(HTTPProvider('http://127.0.0.1:8545', request_kwargs={'timeout': 3}))
-
+        """
         self.createConnection()
         self.createMWConnection()
         self.createMessageConnection()

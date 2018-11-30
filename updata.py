@@ -125,8 +125,11 @@ class getTransactionDataThread(QtCore.QThread):
                 accountEntity.__dict__ = lstEntity.tx_pagination_details[i]
                 print("---------------accountEntity value : " + str(accountEntity.value))
                 # 跟新blockType的属性
-                if lastBlock - accountEntity.blockNumber >= 11:
+                blockCommited = lastBlock - accountEntity.blockNumber
+                if  blockCommited>= 11:
                     accountEntity.blockType = ApplicationHelper.transSuccess
+                elif blockCommited < -1:
+                    accountEntity.blockType = "0/12"
                 else:
                     accountEntity.blockType = str(lastBlock - accountEntity.blockNumber + 1) + '/12'
                 # 跟新每笔交易的类型是send 还是receive
