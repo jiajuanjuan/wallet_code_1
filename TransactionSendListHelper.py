@@ -6,8 +6,7 @@ try:
 except ImportError:
     import pickle
 
-class T
-ransactionSendListHelper:
+class TransactionSendListHelper:
     def __init__(self):
         self.AddressTransactionSendList = []
         try:
