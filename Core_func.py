@@ -15,7 +15,7 @@ from datetime import datetime
 import subprocess
 import eth_utils
 import eth_hash
-#¾«È·¼ÆËã,±£³Ö¾«¶È
+#ç²¾ç¡®è®¡ç®—,ä¿æŒç²¾åº¦
 from decimal import *
 
 """
@@ -250,7 +250,7 @@ def Transaction_out(private_key, toaddr, value, gas, gasprice, nonce):
         print("sendRawTransaction Error : " + str(err))
         return (False,nonce,str(err))
 
-    #ÅĞ¶ÏÈç¹ûÊÇnonce too lowµÄ´íÎó£¬Ôò½«nonceµÄÖµ×Ô¶¯+1 ÔÙÇëÇó
+    #åˆ¤æ–­å¦‚æœæ˜¯nonce too lowçš„é”™è¯¯ï¼Œåˆ™å°†nonceçš„å€¼è‡ªåŠ¨+1 å†è¯·æ±‚
     if "error" in tx_hash.keys():
         try:
             while tx_hash["error"] == "nonce too low":
@@ -273,7 +273,7 @@ def Transaction_out(private_key, toaddr, value, gas, gasprice, nonce):
             return (False, nonce, str(err))
         return (False, nonce, tx_hash["error"])
     return  (True,nonce,tx_hash["tx_hash"])
-    #·µ»ØÖµµÄ¸ñÊ½ 1¡¢·µ»ØÇëÇó³É¹¦»¹ÊÇÊ§°Ü£¬2¡¢·µ»ØnonceµÄÖµ£¨¿ÉÄÜ¾­¹ıÁË×Ô¼Ó¼ÓµÄ²Ù×÷£©£¬·µ»ØÇëÇóµÃµ½µÄ½á¹û
+    #è¿”å›å€¼çš„æ ¼å¼ 1ã€è¿”å›è¯·æ±‚æˆåŠŸè¿˜æ˜¯å¤±è´¥ï¼Œ2ã€è¿”å›nonceçš„å€¼ï¼ˆå¯èƒ½ç»è¿‡äº†è‡ªåŠ åŠ çš„æ“ä½œï¼‰ï¼Œè¿”å›è¯·æ±‚å¾—åˆ°çš„ç»“æœ
 
 
 
@@ -585,7 +585,7 @@ def get_new_USD():
         return (False, 0)
 
 
-#»ñÈ¡Óà¶îÔİÊ±Ã»ÓÃµ½
+#è·å–ä½™é¢æš‚æ—¶æ²¡ç”¨åˆ°
 """
 def getAccountBalance(address):
     try:
@@ -596,7 +596,7 @@ def getAccountBalance(address):
         print("Error: " + str(err))
         return (False, err)    
 """
-#»ñÈ¡Nonce
+#è·å–Nonce
 def getAccountNonce(address):
     try:
         r1 = requests.get(
@@ -606,7 +606,7 @@ def getAccountNonce(address):
         print("Error: " + str(err))
         return (False, err)
 
-#»ñÈ¡¸ÃµØÖ·µÄ100Ìõ½»Ò×¼ÇÂ¼
+#è·å–è¯¥åœ°å€çš„100æ¡äº¤æ˜“è®°å½•
 def getTransactionRecord(address):
     try:
         r1 = requests.get(
@@ -617,7 +617,7 @@ def getTransactionRecord(address):
         print("Error: " + str(err))
         return (False, err)
 
-#»ñÈ¡¸ÃµØÖ·µÄ20ÌìµÄÓà¶î£¬20´ú±í20ÌìµÄÊı¾İ
+#è·å–è¯¥åœ°å€çš„20å¤©çš„ä½™é¢ï¼Œ20ä»£è¡¨20å¤©çš„æ•°æ®
 def getHistoryBalance(address):
     print("address : " + address)
     try:
@@ -632,13 +632,13 @@ def getHistoryBalance(address):
         print("getHistoryBalance Error end : ")
         return (False, err)
 
-#ÊÇÒªÉ¾µôµÄ
+#æ˜¯è¦åˆ æ‰çš„
 def getTransactionRecord_day(public_key, interval):
     try:
         r1 = requests.get("https://waltonchain.net:18950/api/getHistoryBalance/"+public_key+'/'+interval).json()
         return (True, r1['HistoryBalance'])
     except Exception as err:
-        #print("Error £º" + str(err))
+        #print("Error ï¼š" + str(err))
         return (False, err)
 
 

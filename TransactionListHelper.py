@@ -4,13 +4,13 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
-#¾«È·¼ÆËã,±£³Ö¾«¶È
+#ç²¾ç¡®è®¡ç®—,ä¿æŒç²¾åº¦
 from decimal import *
 
 
 
-#¶ÁÈ¡ÅäÖÃÎÄ¼ş×ª³É¶ÔÏó
-#¸÷¸öÇ®°üµÄ½»Ò×¼ÇÂ¼
+#è¯»å–é…ç½®æ–‡ä»¶è½¬æˆå¯¹è±¡
+#å„ä¸ªé’±åŒ…çš„äº¤æ˜“è®°å½•
 class TransactionList:
     def __init__(self):
         self.addressTransactionsEntityList = []
@@ -20,14 +20,14 @@ class TransactionList:
             self.addressTransactionsEntityList = temp.addressTransactionsEntityList
             f.close()
         except Exception as err:
-            #Èç¹û¼ÓÔØTransactionList.xmlÊ§°Ü£¬ÔòÕı³£newÒ»¸ö¶ÔÏó³öÀ´£¬×÷ÎªĞÂµÄ¶ÔÏó£¬½øĞĞÊı¾İµÄÌí¼Ó
+            #å¦‚æœåŠ è½½TransactionList.xmlå¤±è´¥ï¼Œåˆ™æ­£å¸¸newä¸€ä¸ªå¯¹è±¡å‡ºæ¥ï¼Œä½œä¸ºæ–°çš„å¯¹è±¡ï¼Œè¿›è¡Œæ•°æ®çš„æ·»åŠ 
             pass
 
     def add(self,addressEntity):
         has = False
-        #ÅĞ¶Ï¸ÃÇ®°üÊÇ·ñ´æÔÚ
+        #åˆ¤æ–­è¯¥é’±åŒ…æ˜¯å¦å­˜åœ¨
         for i in range(len(self.addressTransactionsEntityList)):
-            #´æÔÚ
+            #å­˜åœ¨
             if self.addressTransactionsEntityList[i].Address == addressEntity.Address:
                 self.addressTransactionsEntityList[i] = addressEntity
                 has = True
@@ -53,7 +53,7 @@ class TransactionList:
 
 
 
-#Ò»¸öÇ®°üµÄ½»Ò×¼ÇÂ¼
+#ä¸€ä¸ªé’±åŒ…çš„äº¤æ˜“è®°å½•
 class AddressTransactionsEntity:
     def __init__(self):
         self.Address=""
@@ -70,7 +70,7 @@ class AccountTransactionsListEntity:
         self.counts_per_page=""
         self.tx_pagination_details =[]
 
-#Ã¿±Ê½»Ò×µÄ¶ÔÏó
+#æ¯ç¬”äº¤æ˜“çš„å¯¹è±¡
 class AccountTransactionsEntity:
     def __init__(self):
         self.addressFrom = ""
