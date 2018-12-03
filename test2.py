@@ -1,4 +1,4 @@
-
+# -*- coding: utf-8 -*-
 
 class loadConfigFile:
     def __init__(self,ttt):

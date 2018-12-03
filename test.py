@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import  subprocess
 import sys
 from PyQt5.QtWidgets import (QWidget, QToolTip, QDesktopWidget, QMessageBox, QTextEdit, QLabel,

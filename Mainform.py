@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 from datetime import datetime, timedelta
 print("time import 1 = " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 import re

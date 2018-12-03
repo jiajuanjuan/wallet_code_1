@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #重写minidom的writexml函数，使得再次写入的时候不会有多余的空行
 import xml
 from xml.dom import minidom

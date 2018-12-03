@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from ApplicationHelper import  pathConfig
 from datetime import datetime
 try:

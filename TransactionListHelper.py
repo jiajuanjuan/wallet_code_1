@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from ApplicationHelper import  pathConfig,ApplicationHelper
 try:
     import cPickle as pickle

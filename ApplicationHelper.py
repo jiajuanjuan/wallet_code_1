@@ -1,4 +1,4 @@
-
+# -*- coding: utf-8 -*-
 class pathConfig:
     keystoresPath = "./keystores/"
     picPath = ":/pic/"
