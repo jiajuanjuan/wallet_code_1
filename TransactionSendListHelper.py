@@ -6,7 +6,8 @@ try:
 except ImportError:
     import pickle
 
-class TransactionSendListHelper:
+class T
+ransactionSendListHelper:
     def __init__(self):
         self.AddressTransactionSendList = []
         try:
@@ -15,14 +16,14 @@ class TransactionSendListHelper:
             self.AddressTransactionSendList = temp.AddressTransactionSendList
             f.close()
         except Exception as err:
-            #Èç¹û¼ÓÔØTransactionList.xmlÊ§°Ü£¬ÔòÕı³£newÒ»¸ö¶ÔÏó³öÀ´£¬×÷ÎªĞÂµÄ¶ÔÏó£¬½øĞĞÊı¾İµÄÌí¼Ó
+            #å¦‚æœåŠ è½½TransactionList.xmlå¤±è´¥ï¼Œåˆ™æ­£å¸¸newä¸€ä¸ªå¯¹è±¡å‡ºæ¥ï¼Œä½œä¸ºæ–°çš„å¯¹è±¡ï¼Œè¿›è¡Œæ•°æ®çš„æ·»åŠ 
             pass
 
     def add(self, currentWalletAddress, TransactionSendEntity):
         has = False
-        # ÅĞ¶Ï¸ÃÇ®°üÊÇ·ñ´æÔÚ
+        # åˆ¤æ–­è¯¥é’±åŒ…æ˜¯å¦å­˜åœ¨
         for i in range(len(self.AddressTransactionSendList)):
-            # ´æÔÚ
+            # å­˜åœ¨
             if self.AddressTransactionSendList[i].Address == currentWalletAddress:
                 self.AddressTransactionSendList[i].TransactionSendList.append(TransactionSendEntity)
                 has = True
@@ -65,7 +66,7 @@ class TransactionSendEntity:
         self.addressTo=addressTo
         self.value=value
         self.tx_hash=""
-        #self.sign = "" ĞèÒªÇëÇóµÄÊı¾İ¼üÖµ¶Ô¾­¹ı×ª»¯ºóµÄÊı¾İ£¬Ö»ÔÚÇëÇóµÄÊ±ºòÓÃµ½£¬ÔİÊ±ÏÈ²»¼ÇÂ¼£¬Èç¹ûºóÆÚÇëÇóÊ§°ÜĞèÒªÖØ¸´ÇëÇóµÄ»°Ôò¼ÇÂ¼ÏÂÀ´¿ÉÒÔ¼õÉÙÖØ¸´×ª»»
+        #self.sign = "" éœ€è¦è¯·æ±‚çš„æ•°æ®é”®å€¼å¯¹ç»è¿‡è½¬åŒ–åçš„æ•°æ®ï¼Œåªåœ¨è¯·æ±‚çš„æ—¶å€™ç”¨åˆ°ï¼Œæš‚æ—¶å…ˆä¸è®°å½•ï¼Œå¦‚æœåæœŸè¯·æ±‚å¤±è´¥éœ€è¦é‡å¤è¯·æ±‚çš„è¯åˆ™è®°å½•ä¸‹æ¥å¯ä»¥å‡å°‘é‡å¤è½¬æ¢
         self.timestamp= datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.blockType="Submitted"
 

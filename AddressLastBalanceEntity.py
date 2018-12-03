@@ -15,14 +15,14 @@ class HistoryBalanceHelper:
             f.close()
         except Exception as err:
             print("HistoryBalanceHelper Error : "+ str(err))
-            #Èç¹û¼ÓÔØHistoryBalance.xmlÊ§°Ü£¬ÔòÕı³£newÒ»¸ö¶ÔÏó³öÀ´£¬×÷ÎªĞÂµÄ¶ÔÏó£¬½øĞĞÊı¾İµÄÌí¼Ó
+            #å¦‚æœåŠ è½½HistoryBalance.xmlå¤±è´¥ï¼Œåˆ™æ­£å¸¸newä¸€ä¸ªå¯¹è±¡å‡ºæ¥ï¼Œä½œä¸ºæ–°çš„å¯¹è±¡ï¼Œè¿›è¡Œæ•°æ®çš„æ·»åŠ 
             pass
 
     def add(self,addressEntity):
         has = False
-        # ÅĞ¶Ï¸ÃÇ®°üÊÇ·ñ´æÔÚ
+        # åˆ¤æ–­è¯¥é’±åŒ…æ˜¯å¦å­˜åœ¨
         for i in range(len(self.addressBalanceEntityList)):
-            # ´æÔÚ
+            # å­˜åœ¨
             if self.addressBalanceEntityList[i].address == addressEntity.address:
                 self.addressBalanceEntityList[i] = addressEntity
                 has = True

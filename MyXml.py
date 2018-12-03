@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#ÖØÐ´minidomµÄwritexmlº¯Êý£¬Ê¹µÃÔÙ´ÎÐ´ÈëµÄÊ±ºò²»»áÓÐ¶àÓàµÄ¿ÕÐÐ
+#é‡å†™minidomçš„writexmlå‡½æ•°ï¼Œä½¿å¾—å†æ¬¡å†™å…¥çš„æ—¶å€™ä¸ä¼šæœ‰å¤šä½™çš„ç©ºè¡Œ
 import xml
 from xml.dom import minidom
 import codecs
@@ -33,7 +33,7 @@ def fixed_writexml(self, writer, indent="", addindent="", newl=""):
         writer.write("/>%s" % (newl))
 minidom.Element.writexml = fixed_writexml
 
-#xml×ªdict
+#xmlè½¬dict
 from collections import defaultdict
 def etree_to_dict(t):
     d = {t.tag: {} if t.attrib else None}

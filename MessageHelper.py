@@ -14,7 +14,7 @@ class MessageListHelper:
             self.AddressMessageList = temp.AddressMessageList
             f.close()
         except Exception as err:
-            #Èç¹û¼ÓÔØÎÄ¼şÊ§°Ü£¬ÔòÕı³£newÒ»¸ö¶ÔÏó³öÀ´£¬×÷ÎªĞÂµÄ¶ÔÏó£¬½øĞĞÊı¾İµÄÌí¼Ó
+            #å¦‚æœåŠ è½½æ–‡ä»¶å¤±è´¥ï¼Œåˆ™æ­£å¸¸newä¸€ä¸ªå¯¹è±¡å‡ºæ¥ï¼Œä½œä¸ºæ–°çš„å¯¹è±¡ï¼Œè¿›è¡Œæ•°æ®çš„æ·»åŠ 
             pass
 
     def save(self):
@@ -27,7 +27,7 @@ class MessageListHelper:
             addressMEntity = self.AddressMessageList[i]
             if addressMEntity.Address.lower() == address.lower():
                 return  addressMEntity
-        #ÕÒ²»µ½ÔònewÒ»¸öĞÂµÄÌí¼Óµ½listÖĞÈ¥£¬²¢·µ»Ønew³öÀ´µÄ¶ÔÏó
+        #æ‰¾ä¸åˆ°åˆ™newä¸€ä¸ªæ–°çš„æ·»åŠ åˆ°listä¸­å»ï¼Œå¹¶è¿”å›newå‡ºæ¥çš„å¯¹è±¡
         newAddressMEntity = AddressMessageEntity()
         newAddressMEntity.Address = address
         self.AddressMessageList.append(newAddressMEntity)

@@ -13,7 +13,7 @@ from TransactionSendListHelper import  TransactionSendListHelper,AddressTransact
 from datetime import datetime
 
 
-#¸üĞÂ20ÌìÓà¶îµÄÏß³Ì
+#æ›´æ–°20å¤©ä½™é¢çš„çº¿ç¨‹
 class getHistoryBalanceThread(QtCore.QThread):
     getBalancefinishSignal = QtCore.pyqtSignal(bool)
     def __init__(self,addr, parent=None):
@@ -37,22 +37,22 @@ class getHistoryBalanceThread(QtCore.QThread):
 
     def refreshLocalFileData(self, strBalance):
         try:
-            # ½«×Öµä×ª³É¶ÔÏó
+            # å°†å­—å…¸è½¬æˆå¯¹è±¡
             balist =  BalanceEntityList()
-            # ½«ÇëÇóµ½µÄÊı¾İ×ª³É×Öµä
+            # å°†è¯·æ±‚åˆ°çš„æ•°æ®è½¬æˆå­—å…¸
             print("$$"+strBalance + "$$")
             balanceDict = json.loads(s=strBalance)
             balist.__dict__ = balanceDict
 
             addressBaEntity = AddressBalanceEntity()
 
-            # ¼ÇÂ¼µ±Ç°¶ÔÏóµÄµØÖ·£¬ÔÙaddµÄÊ±ºò·ÀÖ¹ÖØ¸´
+            # è®°å½•å½“å‰å¯¹è±¡çš„åœ°å€ï¼Œå†addçš„æ—¶å€™é˜²æ­¢é‡å¤
             addressBaEntity.address = self.address
-            # ±äÁ¿ÁĞ±íµÄ×ÖµäÒ»¸ö¸ö×ª³É¶ÔÏó
+            # å˜é‡åˆ—è¡¨çš„å­—å…¸ä¸€ä¸ªä¸ªè½¬æˆå¯¹è±¡
             for i in range(len(balist.HistoryBalance)):
                 bEntity = BalanceEntity()
                 bEntity.__dict__ = balist.HistoryBalance[i]
-                # Ê±¼ä½øĞĞ×ª»»
+                # æ—¶é—´è¿›è¡Œè½¬æ¢
                 time_s = datetime.strptime(bEntity.utc_timestamp, "%Y-%m-%d %H:%M:%S")
                 bEntity.utc_timestamp = Core_func.utc2local(time_s).strftime('%Y-%m-%d %H:%M:%S')
                 addressBaEntity.HistoryBalanceList.append(bEntity)
@@ -64,18 +64,18 @@ class getHistoryBalanceThread(QtCore.QThread):
             self.getBalancefinishSignal.emit(False)
             return
 
-#¸üĞÂ½»Ò×¼ÇÂ¼µÄÏß³Ì
+#æ›´æ–°äº¤æ˜“è®°å½•çš„çº¿ç¨‹
 class getTransactionDataThread(QtCore.QThread):
     getTransfinishSignal = QtCore.pyqtSignal(bool)
     def __init__(self,addr, parent=None):
         super(getTransactionDataThread, self).__init__(parent)
         self.address = addr
     def run(self):
-        #»ñÈ¡Óà¶î
+        #è·å–ä½™é¢
         #balance = 0
         #nonce = 0
         try:
-            #·¢ÏÖÇëÇóµÄbalance ºÍnonceÃ»ÓĞÊ²Ã´×÷ÓÃ£¬ÏÈ²»ÇëÇó
+            #å‘ç°è¯·æ±‚çš„balance å’Œnonceæ²¡æœ‰ä»€ä¹ˆä½œç”¨ï¼Œå…ˆä¸è¯·æ±‚
             """
             retBalance =Core_func.getAccountBalance(self.address)
             if retBalance[0] == False:
@@ -90,7 +90,7 @@ class getTransactionDataThread(QtCore.QThread):
             nonce = retNonce[1]
             print("getTransactionDataThread nonce : " + str(nonce))
             """
-            # »ñÈ¡½»Ò×¼ÇÂ¼
+            # è·å–äº¤æ˜“è®°å½•
             retTrans = Core_func.getTransactionRecord(self.address)
             if retTrans[0] == False:
                 self.getTransfinishSignal.emit(False)
@@ -105,7 +105,7 @@ class getTransactionDataThread(QtCore.QThread):
             return
 
     def refreshLocalFileData(self,strTrans):
-        #ÏÈÓÃ±äÁ¿¼ÇÂ¼ÏÂÀ´£¬±£Ö¤Ò»´Î½»Ò×¼ÇÂ¼»ñÈ¡µÄ¹ı³ÌÖĞlastBlockµÄÖµÊÇÒ»ÑùµÄ
+        #å…ˆç”¨å˜é‡è®°å½•ä¸‹æ¥ï¼Œä¿è¯ä¸€æ¬¡äº¤æ˜“è®°å½•è·å–çš„è¿‡ç¨‹ä¸­lastBlockçš„å€¼æ˜¯ä¸€æ ·çš„
         lastBlock = ApplicationHelper.lastBlock
 
         try:
@@ -113,19 +113,19 @@ class getTransactionDataThread(QtCore.QThread):
             lstEntity = AccountTransactionsListEntity()
             AccountTransListDict = json.loads(s=strTrans)
             lstEntity.__dict__ = AccountTransListDict
-            # ³õÊ¼»¯Ò»¸öÇ®°ü
+            # åˆå§‹åŒ–ä¸€ä¸ªé’±åŒ…
             addressEntity = AddressTransactionsEntity()
             addressEntity.Address = self.address
             addressEntity.UpdateTime = self.currentTime
             # --------------------------------------------------------------------------------------
-            #ÓÃÇëÇóµ½µÄÊı¾İË¢ĞÂTransactionList.xmlµÄĞÅÏ¢
+            #ç”¨è¯·æ±‚åˆ°çš„æ•°æ®åˆ·æ–°TransactionList.xmlçš„ä¿¡æ¯
             for i in range(len(lstEntity.tx_pagination_details)):
-                # ´´½¨Ò»¸öÕË»§½»Ò×
+                # åˆ›å»ºä¸€ä¸ªè´¦æˆ·äº¤æ˜“
                 accountEntity = AccountTransactionsEntity()
-                # ½«ÍøÂçÇëÇóµÄ½»Ò×Êı¾İ¶îdict¸³Öµ¸øÕË»§½»Ò×¶ÔÏóµÄdict£¨ÓÃdict³õÊ¼»¯¶ÔÏó£©
+                # å°†ç½‘ç»œè¯·æ±‚çš„äº¤æ˜“æ•°æ®é¢dictèµ‹å€¼ç»™è´¦æˆ·äº¤æ˜“å¯¹è±¡çš„dictï¼ˆç”¨dictåˆå§‹åŒ–å¯¹è±¡ï¼‰
                 accountEntity.__dict__ = lstEntity.tx_pagination_details[i]
                 print("---------------accountEntity value : " + str(accountEntity.value))
-                # ¸úĞÂblockTypeµÄÊôĞÔ
+                # è·Ÿæ–°blockTypeçš„å±æ€§
                 blockCommited = lastBlock - accountEntity.blockNumber
                 if  blockCommited>= 11:
                     accountEntity.blockType = ApplicationHelper.transSuccess
@@ -133,20 +133,20 @@ class getTransactionDataThread(QtCore.QThread):
                     accountEntity.blockType = "0/12"
                 else:
                     accountEntity.blockType = str(lastBlock - accountEntity.blockNumber + 1) + '/12'
-                # ¸úĞÂÃ¿±Ê½»Ò×µÄÀàĞÍÊÇsend »¹ÊÇreceive
+                # è·Ÿæ–°æ¯ç¬”äº¤æ˜“çš„ç±»å‹æ˜¯send è¿˜æ˜¯receive
                 if accountEntity.addressFrom.lower() == self.address.lower():
                     accountEntity.transType = ApplicationHelper.transSend
                 else:
                     accountEntity.transType = ApplicationHelper.transReceive
-                # Ê±¼ä½øĞĞ×ª»»
+                # æ—¶é—´è¿›è¡Œè½¬æ¢
                 time_s = datetime.strptime(accountEntity.utc_timestamp, "%Y-%m-%d %H:%M:%S")
                 accountEntity.utc_timestamp = Core_func.utc2local(time_s).strftime('%Y-%m-%d %H:%M:%S')
-                # ½«ÕË»§½»Ò×µÄ¶ÔÏóÌí¼Óµ½Ç®°üµÄÕË»§½»Ò×ÁĞ±íÖĞ
+                # å°†è´¦æˆ·äº¤æ˜“çš„å¯¹è±¡æ·»åŠ åˆ°é’±åŒ…çš„è´¦æˆ·äº¤æ˜“åˆ—è¡¨ä¸­
                 addressEntity.AccountTransactionsEntityList.append(accountEntity)
             tHelper = TransactionList()
             tHelper.add(addressEntity)
             # --------------------------------------------------------------------------------------
-            # ¸üĞÂtransSendlistÀïÃæµÄĞÅÏ¢
+            # æ›´æ–°transSendlisté‡Œé¢çš„ä¿¡æ¯
             tsHelper = TransactionSendListHelper()
             addressTransSendList = tsHelper.find(self.address)
             for i in range(len(addressTransSendList.TransactionSendList)):
@@ -155,14 +155,14 @@ class getTransactionDataThread(QtCore.QThread):
                 if accountSendEntity.blockType != ApplicationHelper.transSuccess:
                     for i in range(len(addressEntity.AccountTransactionsEntityList)):
                         accountEntity = addressEntity.AccountTransactionsEntityList[i]
-                        # ÅĞ¶ÏsendµÄ½»Ò×ĞÅÏ¢ÊÇ·ñÒÑ¾­ÔÚÇëÇóµ½µÄlistÖĞ´æÔÚ(ÓÃhashÖµÅĞ¶Ï)£¬Èç¹ûÒÑ¾­´æÔÚÔòtransSendÀïÃæµÄ½»Ò×ÀàĞÍ¾Í¸ÄÎªSuccess£¬·ñÔòÔİ²»´¦Àí
+                        # åˆ¤æ–­sendçš„äº¤æ˜“ä¿¡æ¯æ˜¯å¦å·²ç»åœ¨è¯·æ±‚åˆ°çš„listä¸­å­˜åœ¨(ç”¨hashå€¼åˆ¤æ–­)ï¼Œå¦‚æœå·²ç»å­˜åœ¨åˆ™transSendé‡Œé¢çš„äº¤æ˜“ç±»å‹å°±æ”¹ä¸ºSuccessï¼Œå¦åˆ™æš‚ä¸å¤„ç†
                         if accountSendEntity.tx_hash.lower() == accountEntity.tx_hash.lower():
                             bhas = True
                             break
                     if bhas == True:
                         accountSendEntity.blockType = ApplicationHelper.transSuccess
                     else:
-                        # C#ÊÇ»á¸ù¾İlastnonceÅĞ¶ÏÊÇ·ñÊ§°ÜµÄ£¬Õâ±ßÔİÊ±Ã»ÓĞÅĞ¶Ï
+                        # C#æ˜¯ä¼šæ ¹æ®lastnonceåˆ¤æ–­æ˜¯å¦å¤±è´¥çš„ï¼Œè¿™è¾¹æš‚æ—¶æ²¡æœ‰åˆ¤æ–­
                         pass
                     tsHelper.save()
             # --------------------------------------------------------------------------------------
@@ -172,13 +172,13 @@ class getTransactionDataThread(QtCore.QThread):
             #self.getTransfinishSignal.emit(False)
             return
 
-#¸üĞÂÊĞ³¡ĞÅÏ¢µÄÏß³Ì
+#æ›´æ–°å¸‚åœºä¿¡æ¯çš„çº¿ç¨‹
 class getMarketDataThread(QtCore.QThread):
-    #·µ»Ø4¸öĞÅÏ¢ £ºxÖáµÄĞÅÏ¢£¬yÖáµÄĞÅÏ¢£¬ÆğÖ¹ÈÕÆÚ£¬(Highest£¬lowest£¬closing£¬Opening)µÄtuple£¬Í¨¹ıĞÅºÅ´«µİ¸ø½çÃæ£¬½çÃæ»æÖÆ³öÀ´
+    #è¿”å›4ä¸ªä¿¡æ¯ ï¼šxè½´çš„ä¿¡æ¯ï¼Œyè½´çš„ä¿¡æ¯ï¼Œèµ·æ­¢æ—¥æœŸï¼Œ(Highestï¼Œlowestï¼Œclosingï¼ŒOpening)çš„tupleï¼Œé€šè¿‡ä¿¡å·ä¼ é€’ç»™ç•Œé¢ï¼Œç•Œé¢ç»˜åˆ¶å‡ºæ¥
     getMarketSignalShowMarket = QtCore.pyqtSignal(list,list,tuple,tuple)
-    # ´ËÊ±µÄÊĞ³¡¼ÛÖµ
+    # æ­¤æ—¶çš„å¸‚åœºä»·å€¼
     getMarketSignalshowCurrentUSD = QtCore.pyqtSignal(str)
-    #Ïß³Ì³öÏÖÒì³£»òÕßÕı³£½áÊøµÄĞÅºÅ£¬Í¨¹ı´«µİ³öÈ¥µÄÖµÖØÖÃÏß³Ì±êÖ¾Î»
+    #çº¿ç¨‹å‡ºç°å¼‚å¸¸æˆ–è€…æ­£å¸¸ç»“æŸçš„ä¿¡å·ï¼Œé€šè¿‡ä¼ é€’å‡ºå»çš„å€¼é‡ç½®çº¿ç¨‹æ ‡å¿—ä½
     getMarketfinishSignal = QtCore.pyqtSignal()
 
 
@@ -186,7 +186,7 @@ class getMarketDataThread(QtCore.QThread):
         super(getMarketDataThread, self).__init__(parent)
 
     def run(self):
-        # ÇëÇó´ËÊ±µÄÊĞ³¡¼ÛÖµ
+        # è¯·æ±‚æ­¤æ—¶çš„å¸‚åœºä»·å€¼
         retToday_USD = Core_func.get_new_USD()
         if retToday_USD[0] == False:
             self.getMarketfinishSignal.emit()
@@ -194,33 +194,33 @@ class getMarketDataThread(QtCore.QThread):
         currentUSD = retToday_USD[1]
         self.getMarketSignalshowCurrentUSD.emit(currentUSD)
         try:
-            # ÇëÇóÊĞ³¡ĞÅÏ¢µÄ±ä»¯Ç÷ÊÆ
+            # è¯·æ±‚å¸‚åœºä¿¡æ¯çš„å˜åŒ–è¶‹åŠ¿
             retMarket = Core_func.getTokenMarket()
             if retMarket[0] == False:
                 self.getMarketfinishSignal.emit()
                 return
-            # ÕûÀí³öxÖá yÖáµÄĞÅÏ¢£¬ÆğÊ¼ÈÕÆÚ ·¢ËÍĞÅºÅ¸ø½çÃæÏß³ÌË¢ĞÂ
+            # æ•´ç†å‡ºxè½´ yè½´çš„ä¿¡æ¯ï¼Œèµ·å§‹æ—¥æœŸ å‘é€ä¿¡å·ç»™ç•Œé¢çº¿ç¨‹åˆ·æ–°
             y = []
             x = [31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4,3, 2, 1]
-            # »ñÈ¡30ÌìµÄTokenPriceUSDÖµ£¬²¢´æÆğÀ´
+            # è·å–30å¤©çš„TokenPriceUSDå€¼ï¼Œå¹¶å­˜èµ·æ¥
             iCount = len(retMarket[1])
             for i in range(iCount):
                 y.append(float(retMarket[1][i]['TokenPriceUSD']))
-            #ÕûÀí³öÊ±¼ä×Ö·û´®
+            #æ•´ç†å‡ºæ—¶é—´å­—ç¬¦ä¸²
             startTimeStamp = retMarket[1][iCount-1]["LastUpdate"]
             startTime = datetime.fromtimestamp(startTimeStamp)
             strStartTime = startTime.strftime("%Y-%m-%d")
             strEndTime   = datetime.now().strftime('%Y-%m-%d')
 
-            # ÕûÀí³öHighest£¬lowest£¬closing£¬OpeningĞÅÏ¢£¬·¢ËÍ¸ø½çÃæË¢ĞÂ
+            # æ•´ç†å‡ºHighestï¼Œlowestï¼Œclosingï¼ŒOpeningä¿¡æ¯ï¼Œå‘é€ç»™ç•Œé¢åˆ·æ–°
             closing = y[0]
             opening = y[len(y) - 1]
             lowest = min(y)
             highest = max(y)
-            #½«´ËÊ±µÄÖµ¼ÓÈëµ½µÚÒ»¸ö
+            #å°†æ­¤æ—¶çš„å€¼åŠ å…¥åˆ°ç¬¬ä¸€ä¸ª
             y.insert(0,float(currentUSD))
             print("all y value : " + str(y))
-            # ÕûÀí³öÆğÖ¹Ê±¼ä£¬È»ºó·¢ĞÅºÅ
+            # æ•´ç†å‡ºèµ·æ­¢æ—¶é—´ï¼Œç„¶åå‘ä¿¡å·
             self.getMarketSignalShowMarket.emit(x,y,(strStartTime,strEndTime),(highest,lowest,closing,opening))
             self.getMarketfinishSignal.emit()
         except Exception as err:
@@ -228,7 +228,7 @@ class getMarketDataThread(QtCore.QThread):
             self.getCurrentMarketfinishSignal.emit()
 
 
-#»ñÈ¡×îĞÂblockµÄĞÅÏ¢
+#è·å–æœ€æ–°blockçš„ä¿¡æ¯
 class getLastBlockThread(QtCore.QThread):
     getLastBlockfinishSignal = QtCore.pyqtSignal(tuple)
     def __init__(self, parent=None):

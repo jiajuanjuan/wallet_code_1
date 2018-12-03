@@ -12,7 +12,7 @@ class  ApplicationHelper:
     transSuccess = "Success"
     Wei = 10**18
 
-# ¶ÔlistÖĞ¶ÔÏóµÄÊ±¼äÊôĞÔ½øĞĞÅÅĞò
+# å¯¹listä¸­å¯¹è±¡çš„æ—¶é—´å±æ€§è¿›è¡Œæ’åº
 class sortByTimeOfObj:
     def date_compare(item1, item2):
         import time
